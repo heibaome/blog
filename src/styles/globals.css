@@ -338,6 +338,30 @@ input:focus, textarea:focus {
   transition: border-color 0.2s ease, box-shadow 0.2s ease;
 }
 
+/* 主题切换平滑过渡动画 */
+.theme-transitioning,
+.theme-transitioning body {
+  transition: background-color 0.3s cubic-bezier(0.4, 0, 0.2, 1),
+              color 0.3s cubic-bezier(0.4, 0, 0.2, 1),
+              border-color 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+}
+
+.theme-transitioning ::-webkit-scrollbar-thumb {
+  transition: background-color 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+}
+
+.theme-transitioning a,
+.theme-transitioning button {
+  transition: color 0.3s cubic-bezier(0.4, 0, 0.2, 1),
+              background-color 0.3s cubic-bezier(0.4, 0, 0.2, 1),
+              border-color 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+}
+
+.theme-transitioning .prose blockquote,
+.theme-transitioning .prose th {
+  transition: background-color 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+}
+
 /* 专注模式 — 站点 Header 最小化 */
 .focus-active .site-header {
   height: 4px;

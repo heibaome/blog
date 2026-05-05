@@ -41,13 +41,24 @@ function getStoredTheme(): Theme {
   return "system";
 }
 
-function applyTheme(theme: Theme) {
+function applyTheme(theme: Theme, withTransition = false) {
   const resolved = theme === "system" ? getSystemTheme() : theme;
   const root = document.documentElement;
+  
+  if (withTransition) {
+    root.classList.add("theme-transitioning");
+  }
+  
   if (resolved === "dark") {
     root.classList.add("dark");
   } else {
     root.classList.remove("dark");
+  }
+  
+  if (withTransition) {
+    setTimeout(() => {
+      root.classList.remove("theme-transitioning");
+    }, 300);
   }
 }
 
@@ -87,7 +98,7 @@ export function ThemeProvider({ children }: { children: ReactNode }) {
     localStorage.setItem(STORAGE_KEY, newTheme);
     const resolved = newTheme === "system" ? getSystemTheme() : newTheme;
     setResolvedTheme(resolved);
-    applyTheme(newTheme);
+    applyTheme(newTheme, true);
   }, []);
 
   // 避免 SSR hydration 不匹配：首次渲染不提供真实值
