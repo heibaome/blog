@@ -29,6 +29,7 @@ const routeTitles: Record<string, string> = {
   "/admin/comments": "评论管理",
   "/admin/categories": "分类管理",
   "/admin/tags": "标签管理",
+  "/admin/files": "文件管理",
   "/admin/settings": "个人设置",
 };
 
@@ -76,7 +77,6 @@ export default function AdminLayout({
     return <>{children}</>;
   }
 
-  // Auth check
   // Auth check - redirect to login if not authenticated
   useEffect(() => {
     if (!loading && !user) {
@@ -97,11 +97,11 @@ export default function AdminLayout({
   }
 
   return (
-    <div className="min-h-screen flex" style={{ background: "#0f0f0f", color: "#f5f5f4", fontFamily: '"Source Han Sans SC", "Noto Sans SC", "PingFang SC", sans-serif' }}>
+    <div className="min-h-screen flex" style={{ background: "#0f0f0f", color: "#f5f5f4", fontFamily: "\"Source Han Sans SC\", \"Noto Sans SC\", \"PingFang SC\", \"Microsoft YaHei\", sans-serif" }}>
       {/* Mobile overlay */}
       {sidebarOpen && (
         <div
-          className="fixed inset-0 bg-black/50 z-40 lg:hidden backdrop-blur-md"
+          className="fixed inset-0 bg-black/60 z-40 lg:hidden backdrop-blur-md"
           onClick={() => setSidebarOpen(false)}
         />
       )}
@@ -109,7 +109,7 @@ export default function AdminLayout({
       {/* Sidebar */}
       <aside
         className={clsx(
-          "fixed lg:sticky top-0 left-0 z-50 h-screen w-68 flex flex-col transition-all duration-300 shadow-2xl lg:shadow-none",
+          "fixed lg:sticky top-0 left-0 z-50 h-screen w-72 lg:w-64 flex flex-col transition-all duration-300 shadow-2xl lg:shadow-none",
           sidebarOpen ? "translate-x-0" : "-translate-x-full lg:translate-x-0"
         )}
         style={{ background: "linear-gradient(180deg, #151515 0%, #0f0f0f 100%)" }}
@@ -121,19 +121,12 @@ export default function AdminLayout({
             className="font-bold text-xl flex items-center gap-3 group"
           >
             <div className="w-9 h-9 rounded-xl flex items-center justify-center shadow-lg"
-              style={{
-                background: "linear-gradient(135deg, #c0483e 0%, #ef4444 100%)"
-              }}
-            >
+              style={{ background: "linear-gradient(135deg, #c0483e 0%, #ef4444 100%)" }}>
               <span className="text-white font-bold text-lg">M</span>
             </div>
             <div className="flex flex-col">
-              <span className="text-white group-hover:text-white transition-colors">
-                {t.site_name}
-              </span>
-              <span style={{ color: "#c0483e" }} className="text-xs">
-                {t.site_name_accent}
-              </span>
+              <span className="text-white group-hover:text-white transition-colors">{t.site_name}</span>
+              <span style={{ color: "#c0483e" }} className="text-xs">{t.site_name_accent}</span>
             </div>
           </Link>
         </div>
@@ -150,22 +143,16 @@ export default function AdminLayout({
                 onClick={() => setSidebarOpen(false)}
                 className={clsx(
                   "flex items-center gap-3 px-4 py-3 rounded-2xl text-sm transition-all duration-300 group relative",
-                  isActive
-                    ? "font-semibold shadow-lg"
-                    : "hover:bg-white/[0.06] hover:translate-x-1"
+                  isActive ? "font-semibold shadow-lg" : "hover:bg-white/[0.06] hover:translate-x-1"
                 )}
-                style={isActive
-                  ? {
-                      background: "linear-gradient(135deg, rgba(192, 72, 62, 0.2) 0%, rgba(192, 72, 62, 0.08) 100%)",
-                      color: "#f87171"
-                    }
-                  : { color: "#78716c" }
-                }
+                style={isActive ? {
+                  background: "linear-gradient(135deg, rgba(192, 72, 62, 0.2) 0%, rgba(192, 72, 62, 0.08) 100%)",
+                  color: "#f87171"
+                } : { color: "#78716c" }}
               >
                 {isActive && (
                   <div className="absolute left-2 top-1/2 -translate-y-1/2 w-1.5 h-8 rounded-full"
-                    style={{ background: "#c0483e" }}
-                  />
+                    style={{ background: "#c0483e" }} />
                 )}
                 <Icon size={20} className={isActive ? "" : "group-hover:text-neutral-400"} />
                 <span>{item.label}</span>
@@ -178,7 +165,7 @@ export default function AdminLayout({
         <div className="p-4 border-t border-neutral-800/50">
           <div className="flex items-center gap-3 px-3 py-3 mb-3 rounded-2xl bg-white/[0.02]">
             <div
-              className="w-11 h-11 rounded-2xl flex items-center justify-center text-base font-bold shadow-lg"
+              className="w-10 h-10 lg:w-11 lg:h-11 rounded-2xl flex items-center justify-center text-base font-bold shadow-lg"
               style={{
                 background: "linear-gradient(135deg, rgba(192, 72, 62, 0.3) 0%, rgba(192, 72, 62, 0.1) 100%)",
                 color: "#f87171"
@@ -188,9 +175,7 @@ export default function AdminLayout({
             </div>
             <div className="flex-1 min-w-0">
               <p className="text-sm text-white truncate font-medium">{user.username}</p>
-              <p className="text-xs" style={{ color: "#78716c" }}>
-                {user.role === "admin" ? "管理员" : user.role}
-              </p>
+              <p className="text-xs" style={{ color: "#78716c" }}>{user.role === "admin" ? "管理员" : user.role}</p>
             </div>
           </div>
           <div className="flex gap-2">
@@ -200,7 +185,7 @@ export default function AdminLayout({
               style={{ color: "#a8a29e" }}
             >
               <ChevronLeft size={16} />
-              {t.admin_back_to_site}
+              <span className="hidden sm:inline">{t.admin_back_to_site}</span>
             </Link>
             <button
               onClick={logout}
@@ -208,7 +193,7 @@ export default function AdminLayout({
               style={{ color: "#a8a29e" }}
             >
               <LogOut size={16} />
-              {t.admin_logout}
+              <span className="hidden sm:inline">{t.admin_logout}</span>
             </button>
           </div>
         </div>
@@ -227,12 +212,13 @@ export default function AdminLayout({
             >
               <Menu size={22} />
             </button>
-            <span className="text-base font-semibold">{currentPageTitle}</span>
+            <span className="text-base font-semibold truncate">{currentPageTitle}</span>
           </div>
           <button
             onClick={logout}
             className="p-2.5 rounded-xl transition-all hover:bg-white/[0.06]"
             style={{ color: "#a8a29e" }}
+            title="退出登录"
           >
             <LogOut size={20} />
           </button>
@@ -242,9 +228,7 @@ export default function AdminLayout({
         <header className="hidden lg:flex h-16 items-center justify-between px-8 border-b border-neutral-800/30" style={{ background: "rgba(15, 15, 15, 0.8)" }}>
           <div>
             <h1 className="text-lg font-bold">{currentPageTitle}</h1>
-            <p className="text-xs mt-1" style={{ color: "#78716c" }}>
-              {new Date().toLocaleDateString("zh-CN", { year: "numeric", month: "long", day: "numeric", weekday: "long" })}
-            </p>
+            <p className="text-xs mt-1" style={{ color: "#78716c" }}>{new Date().toLocaleDateString("zh-CN", { year: "numeric", month: "long", day: "numeric", weekday: "long" })}</p>
           </div>
           <div className="flex items-center gap-4">
             <div className="text-xs px-3 py-1.5 rounded-full bg-white/[0.04]" style={{ color: "#78716c" }}>
@@ -253,7 +237,7 @@ export default function AdminLayout({
           </div>
         </header>
 
-        <main className="flex-1 p-5 sm:p-7 lg:p-8 overflow-y-auto">
+        <main className="flex-1 p-5 sm:p-6 lg:p-8 overflow-y-auto">
           {children}
         </main>
       </div>

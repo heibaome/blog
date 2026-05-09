@@ -1,4 +1,5 @@
 import { NextResponse } from "next/server";
+import { ZodError, Prisma } from "@prisma/client";
 
 export class AppError extends Error {
   constructor(
@@ -11,33 +12,84 @@ export class AppError extends Error {
   }
 }
 
+export class NotFoundError extends AppError {
+  constructor(resource: string, identifier?: string) {
+    const msg = identifier
+      ? `${resource} '${identifier}' 不存在`
+      : `${resource} 不存在`;
+    super(msg, 404, "NOT_FOUND");
+    this.name = "NotFoundError";
+  }
+}
+
+export class ValidationError extends AppError {
+  constructor(message: string) {
+    super(message, 400, "VALIDATION_ERROR");
+    this.name = "ValidationError";
+  }
+}
+
+export class UnauthorizedError extends AppError {
+  constructor(message = "请先登录") {
+    super(message, 401, "UNAUTHORIZED");
+    this.name = "UnauthorizedError";
+  }
+}
+
+export class ForbiddenError extends AppError {
+  constructor(message = "权限不足") {
+    super(message, 403, "FORBIDDEN");
+    this.name = "ForbiddenError";
+  }
+}
+
+export class ConflictError extends AppError {
+  constructor(message: string) {
+    super(message, 409, "CONFLICT");
+    this.name = "ConflictError";
+  }
+}
+
+export function handlePrismaUniqueError(error: unknown, resourceName: string): never {
+  if (error instanceof Prisma.PrismaClientKnownRequestError && error.code === "P2002") {
+    throw new ConflictError(`${resourceName}已存在`);
+  }
+  throw error;
+}
+
 export function errorResponse(error: unknown) {
-  // 用 duck-typing 替代 instanceof，避免 Next.js 生产模式下跨 chunk 类标识不一致的问题
-  if (error && typeof error === "object" && "name" in error && (error as any).name === "AppError") {
-    const e = error as AppError;
-    return NextResponse.json(
-      { error: e.message, code: e.code },
-      { status: e.statusCode }
-    );
+  if (error && typeof error === "object" && "name" in error) {
+    const errorName = (error as { name: string }).name;
+
+    if (errorName === "AppError" || errorName === "NotFoundError" || errorName === "ValidationError" ||
+        errorName === "UnauthorizedError" || errorName === "ForbiddenError" || errorName === "ConflictError") {
+      const e = error as AppError;
+      return NextResponse.json(
+        { error: e.message, code: e.code },
+        { status: e.statusCode }
+      );
+    }
   }
 
-  // ZodError：参数校验失败
-  if (error && typeof error === "object" && "name" in error && (error as any).name === "ZodError") {
-    const zodError = error as any;
+  if (error && typeof error === "object" && "name" in error && (error as { name: string }).name === "ZodError") {
+    const zodError = error as ZodError;
     const msg = zodError.issues?.[0]?.message || "参数验证失败";
     return NextResponse.json({ error: msg }, { status: 400 });
   }
 
-  // Prisma 外键约束冲突
-  if (error && typeof error === "object" && "code" in error && (error as any).code === "P2003") {
-    return NextResponse.json(
-      { error: "该记录存在关联数据，无法删除" },
-      { status: 409 }
-    );
-  }
-
-  // 其他 Prisma 错误
-  if (error && typeof error === "object" && "code" in error && typeof (error as any).code === "string" && (error as any).code.startsWith("P")) {
+  if (error instanceof Prisma.PrismaClientKnownRequestError) {
+    if (error.code === "P2003") {
+      return NextResponse.json(
+        { error: "该记录存在关联数据，无法删除" },
+        { status: 409 }
+      );
+    }
+    if (error.code === "P2025") {
+      return NextResponse.json(
+        { error: "记录不存在" },
+        { status: 404 }
+      );
+    }
     console.error("Prisma error:", error);
     return NextResponse.json(
       { error: "数据库操作失败" },
@@ -45,7 +97,6 @@ export function errorResponse(error: unknown) {
     );
   }
 
-  // 未知 Error（非 AppError/ZodError/PrismaError）→ 记录日志并返回通用消息，防止内部信息泄露
   if (error instanceof Error) {
     console.error("Unhandled error:", error);
     return NextResponse.json(
@@ -54,7 +105,6 @@ export function errorResponse(error: unknown) {
     );
   }
 
-  // 未知类型
   console.error("Unknown error:", error);
   return NextResponse.json(
     { error: "服务器内部错误" },
@@ -64,4 +114,15 @@ export function errorResponse(error: unknown) {
 
 export function successResponse(data: unknown, status = 200) {
   return NextResponse.json({ data }, { status });
+}
+
+export async function withErrorHandler<T>(
+  fn: () => Promise<T>
+): Promise<NextResponse> {
+  try {
+    const result = await fn();
+    return successResponse(result);
+  } catch (error) {
+    return errorResponse(error);
+  }
 }

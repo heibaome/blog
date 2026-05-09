@@ -2,11 +2,12 @@ import crypto from "crypto";
 import { prisma } from "@/shared/db";
 
 // 排除易混淆字符: 0/O, 1/l/I
-function randomChars(len = 5) {
+function randomChars(len = 5): string {
   const chars = "ABCDEFGHJKMNPQRSTUVWXYZabcdefghjkmnpqrstuvwxyz23456789";
   let result = "";
   for (let i = 0; i < len; i++) {
-    result += chars[Math.floor(Math.random() * chars.length)];
+    // 使用密码学安全的随机数生成器
+    result += chars[crypto.randomInt(0, chars.length)];
   }
   return result;
 }
@@ -16,8 +17,11 @@ function generateSVG(text: string): string {
   const height = 56;
   const fonts = ["Courier New", "Consolas", "Lucida Console", "monospace"];
 
-  const r = (min: number, max: number) => min + Math.random() * (max - min);
-  const pick = <T,>(arr: T[]) => arr[Math.floor(Math.random() * arr.length)];
+  // 使用安全的随机数生成器替代 Math.random()
+  const r = (min: number, max: number): number => min + secureRandom() * (max - min);
+  const pick = <T,>(arr: T[]): T => {
+    return arr[crypto.randomInt(0, arr.length)];
+  };
 
   let svg = `<svg xmlns="http://www.w3.org/2000/svg" width="${width}" height="${height}">`;
 
@@ -103,14 +107,20 @@ function generateSVG(text: string): string {
   return svg;
 }
 
+// 安全的随机数生成器，返回 [0, 1) 之间的浮点数
+function secureRandom(): number {
+  const buf = crypto.randomBytes(4);
+  return buf.readUInt32BE(0) / 0xFFFFFFFF;
+}
+
 // 清理过期验证码
-async function cleanup() {
+async function cleanup(): Promise<void> {
   await prisma.captcha.deleteMany({
     where: { expires: { lt: new Date() } },
   });
 }
 
-export async function createCaptcha() {
+export async function createCaptcha(): Promise<{ token: string; svg: string }> {
   await cleanup();
 
   const answer = randomChars(5);

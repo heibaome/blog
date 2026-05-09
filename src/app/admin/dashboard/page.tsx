@@ -5,7 +5,7 @@ import { useEffect, useState } from "react";
 import Link from "next/link";
 import {
   FileText, MessageCircle, Eye, PenLine, FolderOpen, Tag,
-  Users, AlertCircle, TrendingUp, Clock,
+  TrendingUp, Clock,
 } from "lucide-react";
 import { formatDate } from "@/lib/date";
 
@@ -50,14 +50,14 @@ export default function DashboardPage() {
   const cardStyle = {
     background: c.card,
     border: `1px solid ${c.border}`,
-    boxShadow: "0 4px 6px -1px rgba(0, 0, 0, 0.3), 0 2px 4px -2px rgba(0, 0, 0, 0.2)"
+    boxShadow: "0 4px 6px -1px rgba(0, 0, 0, 0.3)"
   };
 
   if (loading) {
     return (
       <div className="animate-pulse space-y-6">
         <div className="h-10 w-64 rounded-2xl" style={{ background: c.card }} />
-        <div className="grid grid-cols-2 lg:grid-cols-5 gap-4">
+        <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-5 gap-4">
           {[1, 2, 3, 4, 5].map((i) => (
             <div key={i} className="h-32 rounded-2xl" style={{ background: c.card }} />
           ))}
@@ -69,14 +69,14 @@ export default function DashboardPage() {
   return (
     <div className="animate-fade-in space-y-6">
       {/* Header */}
-      <div className="flex items-center justify-between">
-        <div>
+      <div className="flex items-center justify-between gap-4 flex-col sm:flex-row">
+        <div className="w-full sm:w-auto">
           <h1 className="text-2xl font-bold" style={{ color: c.white }}>仪表盘</h1>
           <p className="text-sm mt-2" style={{ color: c.secondary }}>欢迎回来，这是您的站点概览</p>
         </div>
         <Link
           href="/admin/editor/new"
-          className="flex items-center gap-2.5 px-6 py-3 rounded-2xl text-sm text-white transition-all hover:opacity-90 hover:translate-y-[-1px] shadow-lg"
+          className="flex items-center gap-2.5 px-6 py-3 rounded-2xl text-sm text-white transition-all hover:opacity-90 hover:translate-y-[-1px] shadow-lg w-full sm:w-auto justify-center"
           style={{ background: "linear-gradient(135deg, #c0483e 0%, #ef4444 100%)" }}
         >
           <PenLine size={18} />
@@ -85,9 +85,9 @@ export default function DashboardPage() {
       </div>
 
       {/* Stats Cards */}
-      <div className="grid grid-cols-2 lg:grid-cols-5 gap-4">
+      <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-5 gap-4">
         {[
-          { label: "文章", value: stats?.totalPosts, sub: `${stats?.publishedPosts} 已发 / ${stats?.draftPosts} 草稿`, icon: FileText, gradient: "linear-gradient(135deg, #c0483e 0%, #ef4444 100%)" },
+          { label: "文章", value: stats?.totalPosts, sub: `${stats?.publishedPosts} 已发/${stats?.draftPosts} 草稿`, icon: FileText, gradient: "linear-gradient(135deg, #c0483e 0%, #ef4444 100%)" },
           { label: "浏览量", value: stats?.totalViews, sub: "总浏览", icon: Eye, gradient: "linear-gradient(135deg, #6366f1 0%, #818cf8 100%)" },
           { label: "评论", value: stats?.totalComments, sub: `${stats?.pendingComments} 待审`, icon: MessageCircle, gradient: "linear-gradient(135deg, #10b981 0%, #6ab884 100%)" },
           { label: "分类", value: stats?.totalCategories, icon: FolderOpen, gradient: "linear-gradient(135deg, #f59e0b 0%, #d4a84b 100%)" },
@@ -97,15 +97,15 @@ export default function DashboardPage() {
           return (
             <div key={card.label} className="rounded-2xl p-5 transition-all duration-300 hover:translate-y-[-2px] hover:shadow-xl" style={cardStyle}>
               <div className="flex items-center justify-between mb-4">
-                <div className="w-10 h-10 rounded-xl flex items-center justify-center" style={{ background: card.gradient }}>
-                  <Icon size={20} className="text-white" />
+                <div className="w-9 h-9 sm:w-10 sm:h-10 rounded-xl flex items-center justify-center" style={{ background: card.gradient }}>
+                  <Icon size={18} className="text-white" />
                 </div>
                 <span className="text-xs" style={{ color: c.muted }}>{card.label}</span>
               </div>
-              <p className="text-3xl font-bold tracking-tight" style={{ color: c.white }}>
+              <p className="text-2xl sm:text-3xl font-bold tracking-tight" style={{ color: c.white }}>
                 {typeof card.value === "number" ? card.value.toLocaleString() : "-"}
               </p>
-              {card.sub && <p className="text-xs mt-2" style={{ color: c.muted }}>{card.sub}</p>}
+              {card.sub && <p className="text-[10px] sm:text-xs mt-2" style={{ color: c.muted }}>{card.sub}</p>}
             </div>
           );
         })}
@@ -114,7 +114,7 @@ export default function DashboardPage() {
       {/* Charts Row */}
       <div className="grid grid-cols-1 lg:grid-cols-2 gap-5">
         {/* Post Trend */}
-        <div className="rounded-2xl p-6 transition-all duration-300 hover:translate-y-[-1px] hover:shadow-xl" style={cardStyle}>
+        <div className="rounded-2xl p-5 sm:p-6 transition-all duration-300 hover:translate-y-[-1px] hover:shadow-xl" style={cardStyle}>
           <div className="flex items-center gap-3 mb-5">
             <div className="w-9 h-9 rounded-xl flex items-center justify-center" style={{ background: "linear-gradient(135deg, #c0483e 0%, #ef4444 100%)" }}>
               <TrendingUp size={18} className="text-white" />
@@ -124,12 +124,12 @@ export default function DashboardPage() {
               <p className="text-xs mt-0.5" style={{ color: c.muted }}>共 {stats?.postTrend.reduce((sum, d) => sum + d.count, 0)} 篇文章</p>
             </div>
           </div>
-          <div className="flex items-end gap-2 h-36">
+          <div className="flex items-end gap-1.5 sm:gap-2 h-36">
             {stats?.postTrend.map((d) => (
-              <div key={d.date} className="flex-1 flex flex-col items-center gap-2">
-                <span className="text-[11px] font-medium" style={{ color: c.muted }}>{d.count}</span>
+              <div key={d.date} className="flex-1 flex flex-col items-center gap-1.5 sm:gap-2">
+                <span className="text-[10px] sm:text-[11px] font-medium" style={{ color: c.muted }}>{d.count}</span>
                 <div
-                  className="w-full rounded-t-xl transition-all duration-500"
+                  className="w-full rounded-t-lg sm:rounded-t-xl transition-all duration-500"
                   style={{
                     height: `${Math.max((d.count / maxTrend) * 100, 5)}%`,
                     minHeight: 8,
@@ -147,7 +147,7 @@ export default function DashboardPage() {
         </div>
 
         {/* Category Distribution */}
-        <div className="rounded-2xl p-6 transition-all duration-300 hover:translate-y-[-1px] hover:shadow-xl" style={cardStyle}>
+        <div className="rounded-2xl p-5 sm:p-6 transition-all duration-300 hover:translate-y-[-1px] hover:shadow-xl" style={cardStyle}>
           <div className="flex items-center gap-3 mb-5">
             <div className="w-9 h-9 rounded-xl flex items-center justify-center" style={{ background: "linear-gradient(135deg, #f59e0b 0%, #d4a84b 100%)" }}>
               <FolderOpen size={18} className="text-white" />
@@ -158,11 +158,11 @@ export default function DashboardPage() {
             </div>
           </div>
           {stats && stats.categoryStats.length > 0 ? (
-            <div className="space-y-4">
+            <div className="space-y-3 sm:space-y-4">
               {stats.categoryStats.map((cat) => (
-                <div key={cat.name} className="flex items-center gap-4">
-                  <span className="text-sm w-24 truncate font-medium" style={{ color: c.secondary }}>{cat.name}</span>
-                  <div className="flex-1 h-6 rounded-full overflow-hidden" style={{ background: c.border }}>
+                <div key={cat.name} className="flex items-center gap-3 sm:gap-4">
+                  <span className="text-xs sm:text-sm w-20 sm:w-24 truncate font-medium" style={{ color: c.secondary }}>{cat.name}</span>
+                  <div className="flex-1 h-5 sm:h-6 rounded-full overflow-hidden" style={{ background: c.border }}>
                     <div
                       className="h-full rounded-full transition-all duration-700"
                       style={{
@@ -171,7 +171,7 @@ export default function DashboardPage() {
                       }}
                     />
                   </div>
-                  <span className="text-sm w-10 text-right font-medium" style={{ color: c.muted }}>{cat.count}</span>
+                  <span className="text-xs sm:text-sm w-8 sm:w-10 text-right font-medium" style={{ color: c.muted }}>{cat.count}</span>
                 </div>
               ))}
             </div>
@@ -187,7 +187,7 @@ export default function DashboardPage() {
       {/* Tags & Recent */}
       <div className="grid grid-cols-1 lg:grid-cols-3 gap-5">
         {/* Tag Cloud */}
-        <div className="rounded-2xl p-6 transition-all duration-300 hover:translate-y-[-1px] hover:shadow-xl" style={cardStyle}>
+        <div className="rounded-2xl p-5 sm:p-6 transition-all duration-300 hover:translate-y-[-1px] hover:shadow-xl" style={cardStyle}>
           <div className="flex items-center gap-3 mb-5">
             <div className="w-9 h-9 rounded-xl flex items-center justify-center" style={{ background: "linear-gradient(135deg, #ec4899 0%, #f472b6 100%)" }}>
               <Tag size={18} className="text-white" />
@@ -202,7 +202,7 @@ export default function DashboardPage() {
               {stats.tagStats.map((tag) => (
                 <span
                   key={tag.name}
-                  className="px-3 py-1.5 rounded-xl text-xs font-medium transition-all duration-300 hover:scale-105"
+                  className="px-2.5 sm:px-3 py-1.5 rounded-xl text-xs font-medium transition-all duration-300 hover:scale-105"
                   style={{
                     background: `linear-gradient(135deg, rgba(236, 72, 153, ${0.12 + (tag.count / maxTag) * 0.18}) 0%, rgba(244, 114, 182, ${0.08 + (tag.count / maxTag) * 0.12}) 100%)`,
                     color: "#f472b6",
@@ -222,7 +222,7 @@ export default function DashboardPage() {
         </div>
 
         {/* Recent Articles */}
-        <div className="rounded-2xl p-6 transition-all duration-300 hover:translate-y-[-1px] hover:shadow-xl" style={cardStyle}>
+        <div className="rounded-2xl p-5 sm:p-6 transition-all duration-300 hover:translate-y-[-1px] hover:shadow-xl" style={cardStyle}>
           <div className="flex items-center gap-3 mb-5">
             <div className="w-9 h-9 rounded-xl flex items-center justify-center" style={{ background: "linear-gradient(135deg, #10b981 0%, #6ab884 100%)" }}>
               <Clock size={18} className="text-white" />
@@ -237,19 +237,19 @@ export default function DashboardPage() {
               <Link
                 key={article.id}
                 href={`/admin/editor/${article.id}`}
-                className="flex items-center justify-between gap-3 group p-3 rounded-xl transition-all hover:bg-white/[0.04]"
+                className="flex items-center justify-between gap-3 group p-2.5 sm:p-3 rounded-xl transition-all hover:bg-white/[0.04]"
               >
                 <span className="text-sm truncate flex-1 group-hover:text-white transition-colors font-medium" style={{ color: c.secondary }}>
                   {article.title}
                 </span>
                 <div className="flex items-center gap-2 flex-shrink-0">
                   <span
-                    className="px-2 py-0.5 rounded-lg text-[11px] font-medium"
+                    className="px-1.5 sm:px-2 py-0.5 rounded-lg text-[10px] sm:text-[11px] font-medium"
                     style={{ background: statusColors[article.status]?.bg, color: statusColors[article.status]?.color }}
                   >
                     {article.status === "published" ? "已发" : "草稿"}
                   </span>
-                  <span className="text-[11px]" style={{ color: c.muted }}>
+                  <span className="text-[10px] sm:text-[11px]" style={{ color: c.muted }}>
                     <Eye size={12} className="inline mr-0.5" />{article.viewCount}
                   </span>
                 </div>
@@ -259,7 +259,7 @@ export default function DashboardPage() {
         </div>
 
         {/* Recent Comments */}
-        <div className="rounded-2xl p-6 transition-all duration-300 hover:translate-y-[-1px] hover:shadow-xl" style={cardStyle}>
+        <div className="rounded-2xl p-5 sm:p-6 transition-all duration-300 hover:translate-y-[-1px] hover:shadow-xl" style={cardStyle}>
           <div className="flex items-center gap-3 mb-5">
             <div className="w-9 h-9 rounded-xl flex items-center justify-center" style={{ background: "linear-gradient(135deg, #c0483e 0%, #ef4444 100%)" }}>
               <MessageCircle size={18} className="text-white" />
@@ -269,9 +269,9 @@ export default function DashboardPage() {
               <p className="text-xs mt-0.5" style={{ color: c.muted }}>最新的评论活动</p>
             </div>
           </div>
-          <div className="space-y-4">
+          <div className="space-y-3 sm:space-y-4">
             {stats?.recentComments.map((comment) => (
-              <div key={comment.id} className="flex items-start justify-between gap-3 p-3 rounded-xl transition-all hover:bg-white/[0.04]">
+              <div key={comment.id} className="flex items-start justify-between gap-3 p-2.5 sm:p-3 rounded-xl transition-all hover:bg-white/[0.04]">
                 <div className="flex-1 min-w-0">
                   <p className="text-sm truncate font-medium" style={{ color: c.secondary }}>
                     {comment.authorName || "匿名"} <span style={{ color: c.muted }}>→</span> {comment.post.title}
@@ -281,7 +281,7 @@ export default function DashboardPage() {
                   </p>
                 </div>
                 <span
-                  className="px-2 py-0.5 rounded-lg text-[11px] font-medium flex-shrink-0"
+                  className="px-1.5 sm:px-2 py-0.5 rounded-lg text-[10px] sm:text-[11px] font-medium flex-shrink-0"
                   style={{ background: statusColors[comment.status]?.bg, color: statusColors[comment.status]?.color }}
                 >
                   {comment.status === "approved" ? "已审" : comment.status === "pending" ? "待审" : "拒绝"}
