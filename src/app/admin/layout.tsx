@@ -72,17 +72,17 @@ export default function AdminLayout({
 
   const currentPageTitle = getPageTitle(pathname);
 
-  // Login page - no sidebar
-  if (pathname === "/admin/login") {
-    return <>{children}</>;
-  }
-
   // Auth check - redirect to login if not authenticated
   useEffect(() => {
     if (!loading && !user) {
       router.push("/admin/login");
     }
   }, [loading, user, router]);
+
+  // Login page - no sidebar
+  if (pathname === "/admin/login") {
+    return <>{children}</>;
+  }
 
   if (loading) {
     return (

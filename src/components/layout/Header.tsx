@@ -3,7 +3,7 @@
 import Link from "next/link";
 import { usePathname } from "next/navigation";
 import { clsx } from "clsx";
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import { Menu, X, Globe, Search } from "lucide-react";
 import { useLocale } from "@/components/providers/LocaleProvider";
 import { ThemeToggle } from "@/components/theme/ThemeToggle";
@@ -14,7 +14,16 @@ import { MobileSettingsButton } from "@/components/layout/MobileSettingsSheet";
 export function Header() {
   const pathname = usePathname();
   const [mobileOpen, setMobileOpen] = useState(false);
+  const [scrolled, setScrolled] = useState(false);
   const { t, locale, setLocale } = useLocale();
+
+  useEffect(() => {
+    const handleScroll = () => {
+      setScrolled(window.scrollY > 20);
+    };
+    window.addEventListener("scroll", handleScroll, { passive: true });
+    return () => window.removeEventListener("scroll", handleScroll);
+  }, []);
 
   const navLinks = [
     { href: "/", label: t.nav_home },
@@ -24,90 +33,84 @@ export function Header() {
   ];
 
   return (
-    <header className="site-header sticky top-0 z-50 bg-paper border-b border-border">
-      <div className="max-w-4xl mx-auto px-4 sm:px-6">
-        <div className="flex items-center justify-between h-14">
-          {/* Logo */}
-          <Link
-            href="/"
-            className="font-sans font-bold text-xl text-ink hover:text-accent transition-colors"
-          >
-            {t.site_name}<span className="text-accent">{t.site_name_accent}</span>
+    <header className={clsx("site-header", scrolled && "scrolled")}>
+      <div className="max-w-5xl mx-auto px-6 sm:px-8">
+        <div className="flex items-center justify-between h-16 sm:h-18">
+          <Link href="/" className="logo-ink group flex items-center gap-3">
+            <span className="text-vermilion">墨</span>
+            <span className="text-ink-deep">迹</span>
+            <span className="hidden sm:inline text-sm font-sans font-normal text-ink-mist ml-2 tracking-wider">
+              {t.site_name_accent}
+            </span>
           </Link>
 
-          {/* Desktop Nav */}
-          <nav className="hidden sm:flex items-center gap-1">
-            {navLinks.map((link) => (
+          <nav className="hidden sm:flex items-center gap-2">
+            {navLinks.map((link, index) => (
               <Link
                 key={link.href}
                 href={link.href}
                 className={clsx(
-                  "px-3 py-1.5 rounded-md text-sm font-sans transition-colors",
-                  pathname === link.href
-                    ? "text-accent bg-accent/5 font-medium"
-                    : "text-ink-light hover:text-ink hover:bg-paper-warm"
+                  "nav-link",
+                  pathname === link.href && "active"
                 )}
+                style={{ animationDelay: `${index * 50}ms` }}
               >
                 {link.label}
               </Link>
             ))}
-            {/* Theme toggle */}
-            <ThemeToggle />
-            {/* Reading settings */}
-            <ReadingSettings />
-            {/* Focus mode */}
-            <FocusModeToggle />
-            {/* Language toggle */}
-            <button
-              onClick={() => setLocale(locale === "zh-CN" ? "en-US" : "zh-CN")}
-              className="ml-1 px-2 py-1.5 rounded-md text-sm font-sans text-ink-lighter hover:text-ink hover:bg-paper-warm transition-colors flex items-center gap-1"
-              title={locale === "zh-CN" ? "Switch to English" : "切换到中文"}
-            >
-              <Globe size={14} />
-              <span className="text-xs">{locale === "zh-CN" ? "EN" : "中"}</span>
-            </button>
           </nav>
 
-          {/* Mobile: Search + Settings + Menu */}
-          <div className="sm:hidden flex items-center gap-1">
+          <div className="flex items-center gap-1">
             <button
-              className="p-2 text-ink-light hover:text-ink transition-colors"
+              className="p-2.5 text-ink-medium hover:text-vermilion transition-colors"
               onClick={() => {
                 window.dispatchEvent(new KeyboardEvent("keydown", { key: "k", metaKey: true }));
               }}
-              aria-label="搜索"
+              aria-label={t.nav_search}
             >
               <Search size={18} />
             </button>
-            <MobileSettingsButton />
+            <ThemeToggle />
+            <ReadingSettings />
+            <FocusModeToggle />
             <button
-              className="p-2 text-ink-light hover:text-ink"
+              onClick={() => setLocale(locale === "zh-CN" ? "en-US" : "zh-CN")}
+              className="p-2.5 text-ink-medium hover:text-vermilion transition-colors"
+              title={locale === "zh-CN" ? "Switch to English" : "切换到中文"}
+            >
+              <Globe size={18} />
+            </button>
+
+            <button
+              className="sm:hidden p-2.5 text-ink-medium hover:text-vermilion transition-colors"
               onClick={() => setMobileOpen(!mobileOpen)}
-              aria-label="打开菜单" aria-expanded={mobileOpen}
+              aria-label="菜单"
+              aria-expanded={mobileOpen}
             >
               {mobileOpen ? <X size={20} /> : <Menu size={20} />}
             </button>
           </div>
         </div>
 
-        {/* Mobile Nav（仅导航链接） */}
         {mobileOpen && (
-          <nav className="sm:hidden pb-4 animate-fade-in">
-            {navLinks.map((link) => (
-              <Link
-                key={link.href}
-                href={link.href}
-                onClick={() => setMobileOpen(false)}
-                className={clsx(
-                  "block px-3 py-2 rounded-md text-sm font-sans transition-colors",
-                  pathname === link.href
-                    ? "text-accent bg-accent/5 font-medium"
-                    : "text-ink-light hover:text-ink hover:bg-paper-warm"
-                )}
-              >
-                {link.label}
-              </Link>
-            ))}
+          <nav className="sm:hidden pb-4 border-t border-border-light mt-2 pt-4 animate-fade-in">
+            <div className="flex flex-col gap-1">
+              {navLinks.map((link) => (
+                <Link
+                  key={link.href}
+                  href={link.href}
+                  onClick={() => setMobileOpen(false)}
+                  className={clsx(
+                    "px-4 py-3 text-sm font-sans rounded-md transition-colors",
+                    pathname === link.href
+                      ? "bg-vermilion-muted text-vermilion font-medium"
+                      : "text-ink-medium hover:bg-paper-warm hover:text-ink-deep"
+                  )}
+                >
+                  {link.label}
+                </Link>
+              ))}
+            </div>
           </nav>
         )}
       </div>
