@@ -1,5 +1,6 @@
 import { NextResponse } from "next/server";
-import { ZodError, Prisma } from "@prisma/client";
+import { ZodError } from "zod";
+import { Prisma } from "@prisma/client";
 
 export class AppError extends Error {
   constructor(
