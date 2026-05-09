@@ -393,3 +393,337 @@ input:focus, textarea:focus {
   max-width: 780px;
   transition: max-width 0.4s ease;
 }
+
+/* ========================================
+   水墨流韵主题 - Ink Flow Theme
+   ======================================== */
+
+/* 水墨纹理背景 */
+body::before {
+  content: '';
+  position: fixed;
+  inset: 0;
+  background:
+    radial-gradient(ellipse 80% 50% at 20% 0%, rgba(197, 61, 67, 0.08) 0%, transparent 50%),
+    radial-gradient(ellipse 60% 40% at 80% 100%, rgba(44, 74, 110, 0.06) 0%, transparent 50%);
+  pointer-events: none;
+  z-index: -1;
+}
+
+/* 宣纸纹理 */
+body::after {
+  content: '';
+  position: fixed;
+  inset: 0;
+  background-image: url("data:image/svg+xml,%3Csvg viewBox='0 0 400 400' xmlns='http://www.w3.org/2000/svg'%3E%3Cfilter id='noiseFilter'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='0.9' numOctaves='4' stitchTiles='stitch'/%3E%3C/filter%3E%3Crect width='100%25' height='100%25' filter='url(%23noiseFilter)'/%3E%3C/svg%3E");
+  opacity: 0.02;
+  pointer-events: none;
+  z-index: -1;
+}
+
+/* Header 水墨风格 */
+.site-header {
+  background: rgba(253, 252, 249, 0.85);
+  backdrop-filter: blur(12px);
+  -webkit-backdrop-filter: blur(12px);
+}
+
+/* Logo 书法风格 */
+.logo-ink {
+  font-family: "Noto Serif SC", serif;
+  font-size: 1.6rem;
+  font-weight: 600;
+  color: #2d2d2d;
+  letter-spacing: 0.08em;
+  position: relative;
+  display: inline-block;
+}
+
+.logo-ink:hover {
+  color: #c53d43;
+}
+
+.logo-ink::after {
+  content: '';
+  position: absolute;
+  bottom: -2px;
+  left: 0;
+  width: 100%;
+  height: 2px;
+  background: linear-gradient(90deg, #c53d43, #b8956e 50%, transparent);
+  transform: scaleX(0);
+  transform-origin: left;
+  transition: transform 0.4s cubic-bezier(0.23, 1, 0.32, 1);
+}
+
+.logo-ink:hover::after {
+  transform: scaleX(1);
+}
+
+/* 导航链接 */
+.nav-link {
+  font-family: "Noto Sans SC", sans-serif;
+  font-size: 0.85rem;
+  font-weight: 400;
+  letter-spacing: 0.03em;
+  color: #5a5a5a;
+  padding: 0.5rem 0.8rem;
+  position: relative;
+  transition: color 0.2s;
+}
+
+.nav-link::before {
+  content: '';
+  position: absolute;
+  bottom: 4px;
+  left: 50%;
+  width: 0;
+  height: 1px;
+  background: #c53d43;
+  transition: all 0.25s;
+  transform: translateX(-50%);
+}
+
+.nav-link:hover::before,
+.nav-link.active::before {
+  width: calc(100% - 1.6rem);
+}
+
+.nav-link:hover,
+.nav-link.active {
+  color: #2d2d2d;
+}
+
+.nav-link.active {
+  font-weight: 500;
+}
+
+/* PostCard 水墨卡片 */
+.post-card {
+  position: relative;
+  padding: 1.5rem 0;
+  border-bottom: 1px solid #e8e4dc;
+  transition: all 0.25s;
+}
+
+.post-card::before {
+  content: '';
+  position: absolute;
+  left: -1.5rem;
+  top: 50%;
+  width: 0;
+  height: 0;
+  background: #c53d43;
+  border-radius: 50%;
+  opacity: 0;
+  transform: translateY(-50%);
+  transition: all 0.25s;
+}
+
+.post-card:hover {
+  padding-left: 1.5rem;
+}
+
+.post-card:hover::before {
+  width: 6px;
+  height: 6px;
+  left: 0;
+  opacity: 0.8;
+}
+
+/* 分类标签 - 印章风格 */
+.category-stamp {
+  display: inline-flex;
+  align-items: center;
+  padding: 0.2rem 0.6rem;
+  font-family: "Noto Sans SC", sans-serif;
+  font-size: 0.7rem;
+  font-weight: 500;
+  letter-spacing: 0.08em;
+  color: #4a7c59;
+  border: 1px solid #4a7c59;
+  border-radius: 2px;
+  transform: rotate(-2deg);
+  transition: all 0.15s;
+}
+
+.category-stamp:hover {
+  background: #4a7c59;
+  color: #fdfcf9;
+  transform: rotate(0deg);
+}
+
+/* 标签 - 墨点风格 */
+.tag-ink {
+  display: inline-block;
+  font-family: "Noto Sans SC", sans-serif;
+  font-size: 0.65rem;
+  color: #8a8a8a;
+  padding: 0.15rem 0.4rem;
+  background: #f3efe6;
+  border-radius: 2px;
+  position: relative;
+  transition: all 0.15s;
+}
+
+.tag-ink::before {
+  content: '';
+  position: absolute;
+  left: 0;
+  top: 50%;
+  width: 3px;
+  height: 3px;
+  background: #c53d43;
+  border-radius: 50%;
+  transform: translateY(-50%);
+  opacity: 0;
+  transition: opacity 0.15s;
+}
+
+.tag-ink:hover {
+  color: #c53d43;
+  background: rgba(197, 61, 67, 0.1);
+}
+
+.tag-ink:hover::before {
+  opacity: 1;
+}
+
+/* 文章标题 */
+.post-title {
+  font-family: "Noto Serif SC", serif;
+  font-size: 1.25rem;
+  font-weight: 600;
+  color: #2d2d2d;
+  line-height: 1.4;
+  letter-spacing: 0.02em;
+  position: relative;
+  display: inline;
+  background-image: linear-gradient(#c53d43, #c53d43);
+  background-size: 0% 2px;
+  background-position: 0 100%;
+  background-repeat: no-repeat;
+  transition: background-size 0.25s;
+}
+
+.post-card:hover .post-title {
+  background-size: 100% 2px;
+}
+
+/* 摘要 */
+.post-excerpt {
+  font-family: "Noto Serif SC", serif;
+  font-size: 0.9rem;
+  color: #8a8a8a;
+  line-height: 1.8;
+  display: -webkit-box;
+  -webkit-line-clamp: 2;
+  -webkit-box-orient: vertical;
+  overflow: hidden;
+}
+
+/* 日期显示 */
+.post-date {
+  font-family: "Cormorant Garamond", serif;
+  font-size: 0.8rem;
+  font-style: italic;
+  color: #b5b5b5;
+  letter-spacing: 0.03em;
+}
+
+/* Footer 水墨风格 */
+.site-footer {
+  background: #f8f6f1;
+  position: relative;
+}
+
+.site-footer::before {
+  content: '';
+  position: absolute;
+  top: 0;
+  left: 0;
+  right: 0;
+  height: 3px;
+  background: linear-gradient(90deg, transparent 0%, #c53d43 30%, #b8956e 50%, #2c4a6e 70%, transparent 100%);
+  opacity: 0.5;
+}
+
+/* 签名风格 */
+.signature {
+  font-family: "Noto Serif SC", serif;
+  font-size: 1.1rem;
+  color: #8a8a8a;
+  letter-spacing: 0.12em;
+}
+
+/* 墨迹晕染入场动画 */
+@keyframes inkReveal {
+  0% { opacity: 0; filter: blur(4px); transform: translateY(20px); }
+  50% { filter: blur(2px); }
+  100% { opacity: 1; filter: blur(0); transform: translateY(0); }
+}
+
+.animate-ink-reveal {
+  animation: inkReveal 0.8s cubic-bezier(0.23, 1, 0.32, 1) forwards;
+  opacity: 0;
+}
+
+/* 深色模式适配 */
+.dark body::before {
+  background:
+    radial-gradient(ellipse 80% 50% at 20% 0%, rgba(232, 90, 95, 0.12) 0%, transparent 50%),
+    radial-gradient(ellipse 60% 40% at 80% 100%, rgba(93, 138, 196, 0.1) 0%, transparent 50%);
+}
+
+.dark .logo-ink {
+  color: #e8e4dc;
+}
+
+.dark .nav-link {
+  color: #a8a29e;
+}
+
+.dark .nav-link:hover,
+.dark .nav-link.active {
+  color: #e8e4dc;
+}
+
+.dark .post-card {
+  border-bottom-color: #2d2d32;
+}
+
+.dark .post-title {
+  color: #e8e4dc;
+}
+
+.dark .post-excerpt {
+  color: #78716c;
+}
+
+.dark .post-date {
+  color: #57534e;
+}
+
+.dark .category-stamp {
+  color: #6aab80;
+  border-color: #6aab80;
+}
+
+.dark .category-stamp:hover {
+  background: #6aab80;
+  color: #0f0f11;
+}
+
+.dark .tag-ink {
+  color: #78716c;
+  background: #1a1a1e;
+}
+
+.dark .tag-ink:hover {
+  color: #e85a5f;
+  background: rgba(232, 90, 95, 0.15);
+}
+
+.dark .site-footer {
+  background: #1a1a1e;
+}
