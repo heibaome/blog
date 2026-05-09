@@ -170,6 +170,29 @@ function buildPageCsp(nonce: string): string {
 const API_CSP = "default-src 'none'; frame-ancestors 'none'";
 
 /**
+ * 基础安全响应头（适用于所有路由）
+ * 这些头部提供额外的安全防护层
+ */
+function getSecurityHeaders(): Record<string, string> {
+  return {
+    // 防止浏览器猜测内容类型
+    "X-Content-Type-Options": "nosniff",
+
+    // 防止点击劫持攻击
+    "X-Frame-Options": "DENY",
+
+    // 控制 Referer 头信息
+    "Referrer-Policy": "strict-origin-when-cross-origin",
+
+    // 控制浏览器功能策略
+    "Permissions-Policy": "camera=(), microphone=(), geolocation=(), interest-cohort=()",
+
+    // 移除 X-Powered-By 头（如果存在）
+    "X-Powered-By": "",
+  };
+}
+
+/**
  * 获取真实的基础 URL（处理反向代理场景）
  * 当 Next.js 运行在 Nginx 等反向代理后面时，request.nextUrl.origin 是内部地址 (如 http://127.0.0.1:3000)
  * 需要从代理转发的 header 还原真实域名
@@ -240,9 +263,18 @@ export async function middleware(request: NextRequest) {
       }
     }
 
-    // API 路由：设置严格的 CSP
+    // API 路由：设置严格的 CSP 和安全头
     const response = NextResponse.next();
     response.headers.set("Content-Security-Policy", API_CSP);
+
+    // 应用基础安全响应头
+    const securityHeaders = getSecurityHeaders();
+    for (const [key, value] of Object.entries(securityHeaders)) {
+      if (value) {
+        response.headers.set(key, value);
+      }
+    }
+
     return response;
   }
 
@@ -271,7 +303,17 @@ export async function middleware(request: NextRequest) {
       return new NextResponse(PROTECTED_IMAGE_HTML, { status: 403, headers: { "Content-Type": "text/html; charset=utf-8" } });
     }
     // 通过鉴权，继续走 rewrite 到 /api/uploads/
-    return NextResponse.next();
+
+    // 为上传图片添加安全头
+    const response = NextResponse.next();
+    const securityHeaders = getSecurityHeaders();
+    for (const [key, value] of Object.entries(securityHeaders)) {
+      if (value) {
+        response.headers.set(key, value);
+      }
+    }
+
+    return response;
   }
 
   // 静态资源（_next/static, favicon 等）不设 CSP，直接放行
@@ -317,6 +359,14 @@ export async function middleware(request: NextRequest) {
   // XSS 防护由 sanitizeHtml (DOMPurify) 白名单机制保障。
   // API 路由已有严格的 CSP（default-src 'none'）。
   const response = NextResponse.next();
+
+  // 应用基础安全响应头到页面路由
+  const securityHeaders = getSecurityHeaders();
+  for (const [key, value] of Object.entries(securityHeaders)) {
+    if (value) {
+      response.headers.set(key, value);
+    }
+  }
 
   // 仅在没有有效 Cookie 时才设置（减少不必要的 Set-Cookie）
   const hasCookie = await hasSiteVerifyCookie(request);
