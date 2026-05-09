@@ -1,113 +1,216 @@
 /**
- * 基于用户名的账号登录失败锁定
- * 与 IP 级限速互补：IP 限速防分布式扫描，账号锁定防针对单一账号的暴力破解
+ * 增强型账号登录失败锁定机制
+ *
+ * 安全特性：
+ * 1. 基于用户名的账号锁定（防止针对单一账号的暴力破解）
+ * 2. 基于 IP 的失败计数（防止分布式暴力破解）
+ * 3. 双重锁定：用户名或 IP 任一达到阈值都会触发锁定
  */
 
 interface LockoutEntry {
-  /** 累计失败次数（跨锁定周期保留，用于指数递增） */
   failures: number;
-  /** 锁定截止时间戳（毫秒），0 表示未锁定 */
   lockedUntil: number;
+}
+
+interface IPLockoutEntry {
+  failures: number;
+  lockedUntil: number;
+  lastFailureAt: number;
 }
 
 declare global {
   var __accountLockoutStore: Map<string, LockoutEntry> | undefined;
+  var __ipLockoutStore: Map<string, IPLockoutEntry> | undefined;
 }
 
 if (!globalThis.__accountLockoutStore) {
   globalThis.__accountLockoutStore = new Map();
 }
 
-const store = globalThis.__accountLockoutStore;
+if (!globalThis.__ipLockoutStore) {
+  globalThis.__ipLockoutStore = new Map();
+}
 
-/** 最大连续失败次数 */
+const usernameStore = globalThis.__accountLockoutStore!;
+const ipStore = globalThis.__ipLockoutStore!;
+
 const MAX_FAILURES = 5;
-/** 锁定基础时长（毫秒）：5 分钟 */
 const LOCKOUT_BASE_MS = 5 * 60 * 1000;
-/** 最大锁定时长（毫秒）：6 小时 */
 const LOCKOUT_MAX_MS = 6 * 60 * 60 * 1000;
 
-/**
- * 计算锁定时长（指数递增）
- * 每轮失败次数增加 1，锁定时间翻倍
- * 第1轮锁定 5min → 第2轮锁定 10min → 第3轮 20min → ... → 最大 6h
- */
+const IP_MAX_FAILURES = 10;
+const IP_LOCKOUT_MS = 30 * 60 * 1000;
+const IP_WINDOW_MS = 60 * 60 * 1000;
+
 function getLockoutDuration(totalFailures: number): number {
   const rounds = Math.floor(totalFailures / MAX_FAILURES);
   const duration = LOCKOUT_BASE_MS * Math.pow(2, rounds - 1);
   return Math.min(duration, LOCKOUT_MAX_MS);
 }
 
-// 定期清理过期条目（由 cleanup-registry 管理）
-
 import { registerCleanup } from "@/shared/cleanup-registry";
 
 registerCleanup("account-lockout-cleanup", () => {
   const now = Date.now();
-  for (const [key, entry] of store) {
+  for (const [key, entry] of usernameStore) {
     if (entry.lockedUntil > 0 && entry.lockedUntil < now) {
-      store.delete(key);
+      usernameStore.delete(key);
     }
   }
 }, 5 * 60_000);
 
-/**
- * 检查账号是否被锁定
- * @param username 用户名（小写）
- * @returns 剩余锁定秒数，0 表示未锁定
- */
-export function checkAccountLockout(username: string): number {
-  const key = username.toLowerCase().trim();
-  const entry = store.get(key);
-
-  if (!entry || entry.lockedUntil === 0) return 0;
-
+registerCleanup("ip-lockout-cleanup", () => {
   const now = Date.now();
+  for (const [key, entry] of ipStore) {
+    if (entry.lockedUntil > 0 && entry.lockedUntil < now) {
+      ipStore.delete(key);
+    } else if (entry.lastFailureAt + IP_WINDOW_MS < now) {
+      ipStore.delete(key);
+    }
+  }
+}, 5 * 60_000);
+
+export interface LockoutStatus {
+  isLocked: boolean;
+  lockedUntil: number;
+  remainingSeconds: number;
+  reason: "username" | "ip" | null;
+}
+
+export function checkLockout(username: string, ip: string): LockoutStatus {
+  const now = Date.now();
+
+  const usernameResult = checkUsernameLockout(username, now);
+  if (usernameResult.isLocked) {
+    return usernameResult;
+  }
+
+  const ipResult = checkIpLockout(ip, now);
+  if (ipResult.isLocked) {
+    return ipResult;
+  }
+
+  return { isLocked: false, lockedUntil: 0, remainingSeconds: 0, reason: null };
+}
+
+function checkUsernameLockout(username: string, now: number): LockoutStatus {
+  const key = username.toLowerCase().trim();
+  const entry = usernameStore.get(key);
+
+  if (!entry || entry.lockedUntil === 0) {
+    return { isLocked: false, lockedUntil: 0, remainingSeconds: 0, reason: null };
+  }
+
   if (entry.lockedUntil <= now) {
-    // 锁定已过期，重置
     entry.failures = 0;
     entry.lockedUntil = 0;
-    return 0;
+    return { isLocked: false, lockedUntil: 0, remainingSeconds: 0, reason: null };
   }
 
-  return Math.ceil((entry.lockedUntil - now) / 1000);
+  return {
+    isLocked: true,
+    lockedUntil: entry.lockedUntil,
+    remainingSeconds: Math.ceil((entry.lockedUntil - now) / 1000),
+    reason: "username"
+  };
 }
 
-/**
- * 记录一次登录失败
- * 达到最大失败次数时触发锁定
- * @param username 用户名（小写）
- * @returns 是否触发了锁定
- */
-export function recordLoginFailure(username: string): boolean {
-  const key = username.toLowerCase().trim();
+function checkIpLockout(ip: string, now: number): LockoutStatus {
+  const entry = ipStore.get(ip);
+
+  if (!entry || entry.lockedUntil === 0) {
+    return { isLocked: false, lockedUntil: 0, remainingSeconds: 0, reason: null };
+  }
+
+  if (entry.lockedUntil <= now) {
+    entry.failures = 0;
+    entry.lockedUntil = 0;
+    return { isLocked: false, lockedUntil: 0, remainingSeconds: 0, reason: null };
+  }
+
+  return {
+    isLocked: true,
+    lockedUntil: entry.lockedUntil,
+    remainingSeconds: Math.ceil((entry.lockedUntil - now) / 1000),
+    reason: "ip"
+  };
+}
+
+export function recordFailure(username: string, ip: string): { usernameLocked: boolean; ipLocked: boolean } {
+  const now = Date.now();
+  let usernameLocked = false;
+  let ipLocked = false;
+
+  const usernameKey = username.toLowerCase().trim();
+  let usernameEntry = usernameStore.get(usernameKey);
+  if (!usernameEntry) {
+    usernameEntry = { failures: 0, lockedUntil: 0 };
+    usernameStore.set(usernameKey, usernameEntry);
+  }
+
+  if (usernameEntry.lockedUntil <= now) {
+    usernameEntry.lockedUntil = 0;
+    usernameEntry.failures++;
+    if (usernameEntry.failures >= MAX_FAILURES) {
+      usernameEntry.lockedUntil = now + getLockoutDuration(usernameEntry.failures);
+      usernameLocked = true;
+    }
+  } else {
+    usernameLocked = true;
+  }
+
+  let ipEntry = ipStore.get(ip);
+  if (!ipEntry) {
+    ipEntry = { failures: 0, lockedUntil: 0, lastFailureAt: 0 };
+    ipStore.set(ip, ipEntry);
+  }
+
+  if (ipEntry.lockedUntil > now) {
+    ipLocked = true;
+  } else {
+    if (ipEntry.lastFailureAt + IP_WINDOW_MS < now) {
+      ipEntry.failures = 0;
+    }
+    ipEntry.lastFailureAt = now;
+    ipEntry.failures++;
+    if (ipEntry.failures >= IP_MAX_FAILURES) {
+      ipEntry.lockedUntil = now + IP_LOCKOUT_MS;
+      ipLocked = true;
+    }
+  }
+
+  return { usernameLocked, ipLocked };
+}
+
+export function clearFailures(username: string, ip: string): void {
+  const usernameKey = username.toLowerCase().trim();
+  usernameStore.delete(usernameKey);
+  ipStore.delete(ip);
+}
+
+export function getLockoutInfo(username: string, ip: string): {
+  username: { failures: number; locked: boolean };
+  ip: { failures: number; locked: boolean };
+} {
   const now = Date.now();
 
-  let entry = store.get(key);
-  if (!entry) {
-    entry = { failures: 0, lockedUntil: 0 };
-    store.set(key, entry);
-  }
+  const usernameKey = username.toLowerCase().trim();
+  const usernameEntry = usernameStore.get(usernameKey);
+  const usernameLocked = usernameEntry?.lockedUntil ? usernameEntry.lockedUntil > now : false;
 
-  // 如果还在锁定期内，不增加计数
-  if (entry.lockedUntil > now) return true;
+  const ipEntry = ipStore.get(ip);
+  const ipLocked = ipEntry?.lockedUntil ? ipEntry.lockedUntil > now : false;
 
-  // 锁定已过期：保留 failures 累计值（用于指数递增），重置锁定状态
-  entry.lockedUntil = 0;
-  entry.failures++;
-
-  if (entry.failures >= MAX_FAILURES) {
-    entry.lockedUntil = now + getLockoutDuration(entry.failures);
-    return true;
-  }
-
-  return false;
+  return {
+    username: {
+      failures: usernameEntry?.failures ?? 0,
+      locked: usernameLocked
+    },
+    ip: {
+      failures: ipEntry?.failures ?? 0,
+      locked: ipLocked
+    }
+  };
 }
 
-/**
- * 登录成功，清除失败计数
- */
-export function clearLoginFailures(username: string): void {
-  const key = username.toLowerCase().trim();
-  store.delete(key);
-}
+export { checkAccountLockout, recordLoginFailure, clearLoginFailures } from "./account-lockout-legacy";

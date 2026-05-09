@@ -4,6 +4,7 @@ import { AppError } from "@/shared/errors";
 import { type CreateCommentInput } from "@/shared/types";
 import { validateAndSanitizeComment, sanitizeText } from "@/lib/sanitize";
 import { createHash } from "crypto";
+import { Prisma } from "@prisma/client";
 
 /** 标准化评论内容用于去重比较 */
 function normalizeContent(raw: string): string {
@@ -15,24 +16,24 @@ function contentHash(normalized: string): string {
   return createHash("sha256").update(normalized).digest("hex");
 }
 
-/** 获取或创建 CommentContent（去重） */
-async function getOrCreateContent(raw: string) {
+/**
+ * 获取或创建 CommentContent（去重）
+ * 使用 upsert 操作避免竞态条件，保证原子性
+ * @param tx Prisma事务客户端
+ * @param raw 原始评论内容
+ */
+async function getOrCreateContent(
+  tx: Prisma.TransactionClient,
+  raw: string
+) {
   const normalized = normalizeContent(raw);
   const hash = contentHash(normalized);
 
-  const existing = await prisma.commentContent.findUnique({
+  // upsert 操作是原子的，避免了 "查询-插入-再查询" 的竞态问题
+  return tx.commentContent.upsert({
     where: { contentHash: hash },
-  });
-
-  if (existing) {
-    return prisma.commentContent.update({
-      where: { id: existing.id },
-      data: { refCount: { increment: 1 } },
-    });
-  }
-
-  return prisma.commentContent.create({
-    data: { content: raw, contentHash: hash, refCount: 1 },
+    create: { content: raw, contentHash: hash, refCount: 1 },
+    update: { refCount: { increment: 1 } },
   });
 }
 
@@ -143,28 +144,32 @@ export class CommentService {
     const autoApprove = userRole === "admin";
 
     const safeContent = validateAndSanitizeComment(input.content);
-    const commentContent = await getOrCreateContent(safeContent);
 
-    const comment = await prisma.comment.create({
-      data: {
-        contentId: commentContent.id,
-        postId: input.postId,
-        userId,
-        parentId: input.parentId,
-        authorName: userId ? undefined : sanitizeText(input.authorName || "匿名用户"),
-        authorEmail: userId ? undefined : input.authorEmail,
-        ipHash: ip ? hashIP(ip) : undefined,
-        status: autoApprove ? "approved" : "pending",
-      },
-      include: {
-        user: { select: { id: true, displayName: true, username: true, avatar: true, role: true } },
-        content: { select: { content: true } },
-      },
+    // 使用事务确保评论创建和内容去重的原子性
+    const result = await prisma.$transaction(async (tx) => {
+      const commentContent = await getOrCreateContent(tx, safeContent);
+
+      return tx.comment.create({
+        data: {
+          contentId: commentContent.id,
+          postId: input.postId,
+          userId,
+          parentId: input.parentId,
+          authorName: userId ? undefined : sanitizeText(input.authorName || "匿名用户"),
+          authorEmail: userId ? undefined : input.authorEmail,
+          ipHash: ip ? hashIP(ip) : undefined,
+          status: autoApprove ? "approved" : "pending",
+        },
+        include: {
+          user: { select: { id: true, displayName: true, username: true, avatar: true, role: true } },
+          content: { select: { content: true } },
+        },
+      });
     });
 
     return {
-      ...comment,
-      content: comment.content.content,
+      ...result,
+      content: result.content.content,
     };
   }
 
@@ -257,37 +262,40 @@ export class CommentService {
   }
 
   async deleteComment(id: string) {
-    const comment = await prisma.comment.findUnique({
-      where: { id },
-      select: { id: true, contentId: true, parentId: true },
-    });
-    if (!comment) throw new AppError("评论不存在", 404);
+    // 使用事务确保删除操作的原子性
+    await prisma.$transaction(async (tx) => {
+      const comment = await tx.comment.findUnique({
+        where: { id },
+        select: { id: true, contentId: true, parentId: true },
+      });
+      if (!comment) throw new AppError("评论不存在", 404);
 
-    const children = await prisma.comment.findMany({
-      where: { parentId: id },
-      orderBy: { createdAt: "asc" },
-      select: { id: true },
-    });
-
-    if (children.length > 0) {
-      const heir = children[0];
-      const siblings = children.slice(1);
-
-      await prisma.comment.update({
-        where: { id: heir.id },
-        data: { parentId: comment.parentId },
+      const children = await tx.comment.findMany({
+        where: { parentId: id },
+        orderBy: { createdAt: "asc" },
+        select: { id: true },
       });
 
-      if (siblings.length > 0) {
-        await prisma.comment.updateMany({
-          where: { id: { in: siblings.map((c) => c.id) } },
-          data: { parentId: heir.id },
-        });
-      }
-    }
+      if (children.length > 0) {
+        const heir = children[0];
+        const siblings = children.slice(1);
 
-    await prisma.comment.delete({ where: { id } });
-    await releaseContent(comment.contentId);
+        await tx.comment.update({
+          where: { id: heir.id },
+          data: { parentId: comment.parentId },
+        });
+
+        if (siblings.length > 0) {
+          await tx.comment.updateMany({
+            where: { id: { in: siblings.map((c) => c.id) } },
+            data: { parentId: heir.id },
+          });
+        }
+      }
+
+      await tx.comment.delete({ where: { id } });
+      await releaseContent(comment.contentId);
+    });
   }
 }
 

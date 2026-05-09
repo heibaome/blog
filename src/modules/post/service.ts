@@ -80,8 +80,7 @@ export class PostService {
       });
       return { viewCount: post.viewCount };
     } catch (error) {
-      // P2025: where 条件不匹配（文章不存在或未发布）
-      if (error && typeof error === "object" && "code" in error && (error as any).code === "P2025") {
+      if (error && typeof error === "object" && "code" in error && (error as { code: string }).code === "P2025") {
         throw new AppError("文章不存在", 404);
       }
       throw error;
@@ -146,7 +145,6 @@ export class PostService {
 
   // 创建文章
   async createPost(input: CreatePostInput, authorId: string) {
-    // 检查 slug 唯一性
     const existing = await prisma.post.findUnique({ where: { slug: input.slug } });
     if (existing) throw new AppError("该 slug 已存在", 409);
 
@@ -172,7 +170,6 @@ export class PostService {
       include: { tags: { include: { tag: true } }, category: true },
     });
 
-    // 同步 FTS 索引
     await searchService.syncPost(post.id);
 
     return post;
@@ -183,13 +180,11 @@ export class PostService {
     const existing = await prisma.post.findUnique({ where: { id } });
     if (!existing) throw new AppError("文章不存在", 404);
 
-    // 如果改了 slug，检查唯一性
     if (input.slug && input.slug !== existing.slug) {
       const slugExists = await prisma.post.findUnique({ where: { slug: input.slug } });
       if (slugExists) throw new AppError("该 slug 已存在", 409);
     }
 
-    // 显式白名单：只传递允许更新的字段，防止意外写入（如 id、createdAt 等）
     const {
       tagIds,
       title,
@@ -218,7 +213,6 @@ export class PostService {
     if (isOutdated !== undefined) updateData.isOutdated = isOutdated;
     if (aiSummary !== undefined) updateData.aiSummary = aiSummary;
 
-    // 如果状态变为 published，设置发布时间
     if (status === "published" && existing.status !== "published") {
       updateData.publishedAt = new Date();
     }
@@ -239,32 +233,59 @@ export class PostService {
       include: { tags: { include: { tag: true } }, category: true },
     });
 
-    // 同步 FTS 索引
     await searchService.syncPost(id);
 
     return post;
   }
 
-  // 删除文章（同时清理关联的图片文件和 PostImage 记录）
+  /**
+   * 删除文章（事务保证数据一致性）
+   *
+   * 设计原则：
+   * 1. 数据库操作在事务中执行，确保原子性
+   * 2. 文件清理在事务外执行（幂等操作，失败可重试）
+   * 3. FTS 索引清理在事务外执行（独立系统）
+   */
   async deletePost(id: string) {
+    // 先获取文章信息（包括关联的图片）
     const existing = await prisma.post.findUnique({
       where: { id },
       include: { images: true },
     });
     if (!existing) throw new AppError("文章不存在", 404);
 
-    // 先删除数据库记录（PostImage 由 onDelete: Cascade 自动清理）
-    // 确保数据库操作成功后再清理文件，避免文件删了但数据库回滚的情况
-    await prisma.post.delete({ where: { id } });
+    // 保存图片路径，供后续清理使用
+    const imagePaths = existing.images.map((img) => img.url);
+    const coverImage = existing.coverImage;
+    const content = existing.content;
 
-    // 从 FTS 索引移除
-    await searchService.removeFromIndex(id);
+    // 在事务中执行数据库删除操作
+    await prisma.$transaction(async (tx) => {
+      // 删除文章（PostImage 会由 onDelete: Cascade 自动清理）
+      await tx.post.delete({ where: { id } });
+    });
 
-    // 再清理 PostImage 关联的文件（文件可能已被 Cascade 删除记录，但文件仍在磁盘上）
-    await Promise.all(existing.images.map((img) => deleteUploadFile(img.url)));
+    // 从 FTS 索引移除（独立操作，失败不影响数据库一致性）
+    try {
+      await searchService.removeFromIndex(id);
+    } catch (error) {
+      console.error(`Failed to remove post ${id} from FTS index:`, error);
+    }
 
-    // 清理旧 HTML 中嵌入的图片和封面图
-    await cleanupPostImages(existing);
+    // 清理图片文件（幂等操作，即使重复执行也不会有问题）
+    // 优先清理文章内容中嵌入的图片
+    try {
+      await cleanupPostImages({ coverImage, content } as { coverImage: string | null; content: string });
+    } catch (error) {
+      console.error("Failed to cleanup embedded images:", error);
+    }
+
+    // 清理独立的 PostImage 文件
+    await Promise.all(
+      imagePaths.map((url) => deleteUploadFile(url).catch((error) => {
+        console.error(`Failed to delete image ${url}:`, error);
+      }))
+    );
   }
 
   // 按分类获取文章
@@ -325,7 +346,7 @@ export class PostService {
     const posts = await prisma.post.findMany({
       where: { status: "published" },
       orderBy: { publishedAt: "desc" },
-      take: 1000, // 上限保护，防止文章数量过多导致内存溢出
+      take: 1000,
       select: {
         id: true,
         title: true,
@@ -335,7 +356,6 @@ export class PostService {
       },
     });
 
-    // 按年月分组
     const archive: Record<string, typeof posts> = {};
     for (const post of posts) {
       if (!post.publishedAt) continue;
@@ -350,13 +370,11 @@ export class PostService {
   // 获取相邻文章（上一篇/下一篇）
   async getAdjacentPosts(publishedAt: Date, currentId: string) {
     const [prev, next] = await Promise.all([
-      // 上一篇：发布时间更早的最近一篇
       prisma.post.findFirst({
         where: { status: "published", publishedAt: { lt: publishedAt }, id: { not: currentId } },
         orderBy: { publishedAt: "desc" },
         select: { title: true, slug: true },
       }),
-      // 下一篇：发布时间更晚的最早一篇
       prisma.post.findFirst({
         where: { status: "published", publishedAt: { gt: publishedAt }, id: { not: currentId } },
         orderBy: { publishedAt: "asc" },
