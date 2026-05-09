@@ -6,7 +6,7 @@ import { setAuthCookie } from "@/shared/security";
 import { setCsrfCookie } from "@/lib/csrf";
 import { rateLimit, rateLimitPresets, getClientIP } from "@/lib/ratelimit";
 import { verifyCaptcha } from "@/lib/captcha";
-import { checkAccountLockout, recordLoginFailure, clearLoginFailures } from "@/lib/account-lockout";
+import { checkLockout, recordFailure, clearFailures } from "@/lib/account-lockout";
 import { prisma } from "@/shared/db";
 
 /**
@@ -48,14 +48,15 @@ export async function POST(req: NextRequest) {
 
     // 邮箱登录时，先解析出用户名，统一锁定 key
     const lockKey = await resolveUsername(input.username);
+    const clientIP = getClientIP(req);
 
     // 账号级锁定检查：同一用户名连续失败 5 次后锁定 30 分钟
-    const lockoutRemaining = checkAccountLockout(lockKey);
-    if (lockoutRemaining > 0) {
-      const minutes = Math.ceil(lockoutRemaining / 60);
+    const lockStatus = checkLockout(lockKey, clientIP);
+    if (lockStatus.isLocked) {
+      const minutes = Math.ceil(lockStatus.remainingSeconds / 60);
       return NextResponse.json(
         { error: `账号已锁定，请 ${minutes} 分钟后再试` },
-        { status: 429, headers: { "Retry-After": String(lockoutRemaining) } }
+        { status: 429, headers: { "Retry-After": String(lockStatus.remainingSeconds) } }
       );
     }
 
@@ -69,14 +70,14 @@ export async function POST(req: NextRequest) {
     try {
       const result = await authService.login(input);
       // 登录成功，清除失败计数
-      clearLoginFailures(lockKey);
+      clearFailures(lockKey, clientIP);
       await setAuthCookie(result.token);
       await setCsrfCookie();
       return successResponse(result);
     } catch (loginError) {
       // 登录失败，记录失败次数
-      const locked = recordLoginFailure(lockKey);
-      if (locked) {
+      const { usernameLocked } = recordFailure(lockKey, clientIP);
+      if (usernameLocked) {
         return NextResponse.json(
           { error: "登录失败次数过多，账号已锁定30分钟" },
           { status: 429 }

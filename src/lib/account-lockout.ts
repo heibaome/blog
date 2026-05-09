@@ -213,4 +213,4 @@ export function getLockoutInfo(username: string, ip: string): {
   };
 }
 
-export { checkAccountLockout, recordLoginFailure, clearLoginFailures } from "./account-lockout-legacy";
+
