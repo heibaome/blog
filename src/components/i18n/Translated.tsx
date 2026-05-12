@@ -18,22 +18,36 @@ export function TranslatedArchiveDate({ date }: { date: Date | string }) {
 export function HomeHero() {
   const { t } = useLocale();
   return (
-    <section className="mb-4 text-center py-3 sm:py-4">
-      {/* 装饰性墨点 */}
-      <div className="flex justify-center mb-3">
-        <div className="w-8 h-8 rounded-full bg-accent/10 flex items-center justify-center">
-          <div className="w-2.5 h-2.5 rounded-full bg-accent/60" />
+    <section className="mb-6 text-center py-4 sm:py-6 relative">
+      {/* 背景装饰 - 渐变光晕 */}
+      <div className="absolute inset-0 -z-10 overflow-hidden">
+        <div className="absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 w-[500px] h-[300px] bg-gradient-radial from-accent/5 via-transparent to-transparent" />
+      </div>
+
+      {/* 顶部装饰性墨点 */}
+      <div className="flex justify-center mb-4">
+        <div className="w-10 h-10 rounded-full bg-accent/10 flex items-center justify-center">
+          <div className="w-3 h-3 rounded-full bg-accent/60" />
         </div>
       </div>
-      <h1 className="text-3xl sm:text-4xl font-sans font-bold text-ink mb-4 tracking-tight">
+
+      {/* 主标题 */}
+      <h1 className="text-4xl sm:text-5xl font-sans font-bold text-ink mb-4 tracking-tight">
         {t.home_title}<span className="text-accent">{t.home_title_accent}</span>
       </h1>
+
+      {/* 副标题 / 标语 */}
+      <p className="text-base sm:text-lg text-ink-light font-sans mb-5 max-w-md mx-auto px-4">
+        用心书写，以墨留迹
+      </p>
+
       {/* 装饰分隔线 */}
-      <div className="flex items-center justify-center gap-3 mb-4">
-        <div className="w-8 h-px bg-border" />
-        <div className="w-1.5 h-1.5 rounded-full bg-accent/40 rotate-45" />
-        <div className="w-8 h-px bg-border" />
+      <div className="flex items-center justify-center gap-3 mb-5">
+        <div className="w-12 h-px bg-gradient-to-r from-transparent to-border" />
+        <div className="w-2 h-2 rounded-full bg-accent/50 rotate-45" />
+        <div className="w-12 h-px bg-gradient-to-l from-transparent to-border" />
       </div>
+
       {/* Lottie welcome 动画 */}
       <div className="w-full max-w-md mx-auto">
         <Lottie

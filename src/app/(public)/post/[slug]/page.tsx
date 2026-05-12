@@ -7,7 +7,7 @@ import { buildMetadata } from "@/lib/seo";
 import { CommentSection } from "@/components/comment/CommentSection";
 import { ViewCounter } from "@/components/post/ViewCounter";
 import Link from "next/link";
-import { MessageCircle, Calendar, FolderOpen, Tag, Clock, ChevronLeft, ChevronRight } from "lucide-react";
+import { Calendar, FolderOpen, Tag, Clock, ChevronLeft, ChevronRight } from "lucide-react";
 import { ImageZoom } from "@/components/motion/ImageZoom";
 
 const SITE_URL = process.env.NEXT_PUBLIC_SITE_URL || "http://localhost:3000";
@@ -104,73 +104,84 @@ export default async function PostPage({ params }: PageProps) {
         type="application/ld+json"
         dangerouslySetInnerHTML={{ __html: JSON.stringify(jsonLd) }}
       />
-      <article>
+      <article className="relative">
       {/* 文章头部 */}
       <header className="mb-8 pb-6 border-b border-border">
-        <h1 className="text-2xl sm:text-3xl font-sans font-bold text-ink leading-tight mb-4">
+        {/* 文章标题 */}
+        <h1 className="text-2xl sm:text-3xl font-sans font-bold text-ink leading-tight mb-6">
           {post.title}
         </h1>
 
-        <div className="flex flex-wrap items-center gap-x-4 gap-y-2 text-sm font-sans text-ink-lighter">
+        {/* 元信息卡片 */}
+        <div className="flex flex-wrap items-center gap-4 p-4 rounded-xl bg-paper-warm border border-border">
           {/* 作者 */}
-          <span className="flex items-center gap-1.5">
-            {post.author.avatar && (
+          <div className="flex items-center gap-2">
+            {post.author.avatar ? (
               <img
                 src={post.author.avatar}
                 alt={post.author.displayName || "墨迹"}
-                className="w-5 h-5 rounded-full"
+                className="w-8 h-8 rounded-full"
               />
+            ) : (
+              <div className="w-8 h-8 rounded-full bg-accent/20 flex items-center justify-center text-accent text-sm font-medium">
+                {(post.author.displayName || "墨迹")[0]}
+              </div>
             )}
-            {post.author.displayName || "墨迹"}
-            {post.author.role === "admin" && (
-              <span title="博主" className="text-sm">👑</span>
-            )}
-          </span>
+            <div className="flex flex-col">
+              <span className="text-sm font-medium text-ink">
+                {post.author.displayName || "墨迹"}
+              </span>
+              {post.author.role === "admin" && (
+                <span className="text-xs text-accent">博主</span>
+              )}
+            </div>
+          </div>
+
+          <div className="w-px h-8 bg-border hidden sm:block" />
 
           {/* 日期 */}
           {post.publishedAt && (
-            <span className="flex items-center gap-1">
-              <Calendar size={14} />
-              {formatDate(post.publishedAt)}
-            </span>
+            <div className="flex items-center gap-2 text-sm text-ink-light">
+              <Calendar size={14} className="text-ink-lighter" />
+              <span>{formatDate(post.publishedAt)}</span>
+            </div>
           )}
 
-          {/* 浏览量（客户端异步递增） */}
+          <div className="w-px h-8 bg-border hidden sm:block" />
+
+          {/* 浏览量 */}
           <ViewCounter slug={slug} initialCount={post.viewCount} />
 
           {/* 阅读时间 */}
-          <span className="flex items-center gap-1">
-            <Clock size={14} />
-            {readingTime} 分钟
-          </span>
-
-          {/* 评论数 */}
-          <span className="flex items-center gap-1">
-            <MessageCircle size={14} />
-            {post._count.comments}
-          </span>
+          <div className="flex items-center gap-2 text-sm text-ink-light">
+            <Clock size={14} className="text-ink-lighter" />
+            <span>{readingTime} 分钟阅读</span>
+          </div>
 
           {/* 分类 */}
           {post.category && (
-            <Link
-              href={`/category/${post.category.slug}`}
-              className="flex items-center gap-1 text-jade hover:text-jade-light transition-colors"
-            >
-              <FolderOpen size={14} />
-              {post.category.name}
-            </Link>
+            <>
+              <div className="w-px h-8 bg-border hidden sm:block" />
+              <Link
+                href={`/category/${post.category.slug}`}
+                className="flex items-center gap-1 text-sm text-jade hover:text-jade-light transition-colors"
+              >
+                <FolderOpen size={14} />
+                {post.category.name}
+              </Link>
+            </>
           )}
         </div>
 
         {/* 标签 */}
         {post.tags.length > 0 && (
-          <div className="flex items-center gap-2 mt-3">
+          <div className="flex items-center gap-2 mt-4 flex-wrap">
             <Tag size={14} className="text-ink-lighter" />
             {post.tags.map(({ tag }) => (
               <Link
                 key={tag.id}
                 href={`/tag/${tag.slug}`}
-                className="px-2 py-0.5 rounded text-xs font-sans bg-paper-warm text-ink-light hover:text-accent hover:bg-accent/5 transition-colors"
+                className="tag-ink"
               >
                 {tag.name}
               </Link>
@@ -188,33 +199,36 @@ export default async function PostPage({ params }: PageProps) {
 
       {/* 上一篇 / 下一篇 */}
       {(prev || next) && (
-        <nav className="mt-12 pt-8 border-t border-border grid grid-cols-1 sm:grid-cols-2 gap-4">
-          {prev ? (
-            <Link
-              href={`/post/${prev.slug}`}
-              className="group flex flex-col gap-1 p-4 rounded-xl hover:bg-paper-warm transition-colors"
-            >
-              <span className="text-xs font-sans text-ink-lighter flex items-center gap-1">
-                <ChevronLeft size={14} /> 上一篇
-              </span>
-              <span className="text-sm font-sans font-medium text-ink group-hover:text-accent transition-colors line-clamp-1">
-                {prev.title}
-              </span>
-            </Link>
-          ) : <div />}
-          {next ? (
-            <Link
-              href={`/post/${next.slug}`}
-              className="group flex flex-col gap-1 p-4 rounded-xl hover:bg-paper-warm transition-colors sm:text-right"
-            >
-              <span className="text-xs font-sans text-ink-lighter flex items-center gap-1 sm:justify-end">
-                下一篇 <ChevronRight size={14} />
-              </span>
-              <span className="text-sm font-sans font-medium text-ink group-hover:text-accent transition-colors line-clamp-1">
-                {next.title}
-              </span>
-            </Link>
-          ) : <div />}
+        <nav className="mt-12 pt-8 border-t border-border">
+          <h3 className="text-xs font-sans text-ink-lighter mb-4 text-center">— 继续阅读 —</h3>
+          <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+            {prev ? (
+              <Link
+                href={`/post/${prev.slug}`}
+                className="group flex flex-col gap-1 p-4 rounded-xl bg-paper-warm border border-border hover:border-accent/30 hover:shadow-md transition-all duration-200"
+              >
+                <span className="text-xs font-sans text-ink-lighter flex items-center gap-1">
+                  <ChevronLeft size={14} /> 上一篇
+                </span>
+                <span className="text-sm font-sans font-medium text-ink group-hover:text-accent transition-colors line-clamp-2">
+                  {prev.title}
+                </span>
+              </Link>
+            ) : <div />}
+            {next ? (
+              <Link
+                href={`/post/${next.slug}`}
+                className="group flex flex-col gap-1 p-4 rounded-xl bg-paper-warm border border-border hover:border-accent/30 hover:shadow-md transition-all duration-200 sm:text-right"
+              >
+                <span className="text-xs font-sans text-ink-lighter flex items-center gap-1 sm:justify-end">
+                  下一篇 <ChevronRight size={14} />
+                </span>
+                <span className="text-sm font-sans font-medium text-ink group-hover:text-accent transition-colors line-clamp-2">
+                  {next.title}
+                </span>
+              </Link>
+            ) : <div />}
+          </div>
         </nav>
       )}
 

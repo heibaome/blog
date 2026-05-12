@@ -39,6 +39,7 @@ export function PostCard({ post }: PostCardProps) {
           )}
 
           <div className="flex-1 min-w-0">
+            {/* 顶部信息栏：分类 + 日期 + 置顶标识 */}
             <div className="flex items-center gap-3 mb-3">
               {post.category && (
                 <span className="category-stamp">
@@ -51,18 +52,28 @@ export function PostCard({ post }: PostCardProps) {
                   {formatRelative(post.publishedAt, locale)}
                 </time>
               )}
+              {/* 置顶标识 */}
+              {(post as any).isTop && (
+                <span className="inline-flex items-center gap-1 px-2 py-0.5 rounded text-xs font-sans bg-accent/10 text-accent border border-accent/20">
+                  <span className="text-[10px]">📌</span>
+                  置顶
+                </span>
+              )}
             </div>
 
+            {/* 标题 */}
             <h2 className="post-title mb-2">
               {post.title}
             </h2>
 
+            {/* 摘要 */}
             {post.summary && (
               <p className="post-excerpt mb-3">
                 {post.summary}
               </p>
             )}
 
+            {/* 底部标签和统计 */}
             <div className="flex flex-wrap items-center gap-3 text-xs">
               {post.tags && post.tags.length > 0 && (
                 <div className="flex items-center gap-2">
