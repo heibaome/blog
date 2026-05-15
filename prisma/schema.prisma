@@ -1,0 +1,187 @@
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider = "sqlite"
+  url      = env("DATABASE_URL")
+}
+
+model User {
+  id        String   @id @default(cuid())
+  username  String   @unique
+  email     String   @unique
+  password  String
+  avatar    String?
+  displayName String? @map("display_name")
+  role      String   @default("author")
+  createdAt DateTime @default(now()) @map("created_at")
+  updatedAt DateTime @updatedAt @map("updated_at")
+
+  posts    Post[]
+  comments Comment[]
+
+  @@map("users")
+}
+
+model Post {
+  id           String      @id @default(cuid())
+  slug         String      @unique
+  title        String
+  content      String      @default("")
+  summary      String      @default("")
+  coverImage   String?     @map("cover_image")
+  status       String      @default("draft")
+  isTop        Boolean     @default(false) @map("is_top")
+  isEssence    Boolean     @default(false) @map("is_essence")
+  isOutdated   Boolean     @default(false) @map("is_outdated")
+  aiSummary    String?     @map("ai_summary")
+  viewCount    Int         @default(0) @map("view_count")
+  createdAt    DateTime    @default(now()) @map("created_at")
+  updatedAt    DateTime    @updatedAt @map("updated_at")
+  publishedAt  DateTime?   @map("published_at")
+
+  authorId   String @map("author_id")
+  author     User   @relation(fields: [authorId], references: [id])
+
+  categoryId String? @map("category_id")
+  category   Category? @relation(fields: [categoryId], references: [id])
+
+  tags     PostTag[]
+  comments Comment[]
+  images   PostImage[]
+
+  @@index([status])
+  @@index([publishedAt])
+  @@index([authorId])
+  @@index([status, publishedAt])  // 复合索引：查询已发布文章列表
+  @@map("posts")
+}
+
+model Category {
+  id       String  @id @default(cuid())
+  name     String  @unique
+  slug     String  @unique
+  sortOrder Int    @default(0) @map("sort_order")
+
+  parentId String?  @map("parent_id")
+  parent   Category? @relation("CategoryTree", fields: [parentId], references: [id])
+  children Category[] @relation("CategoryTree")
+
+  posts Post[]
+
+  @@map("categories")
+}
+
+model Tag {
+  id   String @id @default(cuid())
+  name String @unique
+  slug String @unique
+
+  posts PostTag[]
+
+  @@map("tags")
+}
+
+model PostTag {
+  postId String @map("post_id")
+  tagId  String @map("tag_id")
+  post   Post   @relation(fields: [postId], references: [id], onDelete: Cascade)
+  tag    Tag    @relation(fields: [tagId], references: [id], onDelete: Cascade)
+
+  @@id([postId, tagId])
+  @@map("post_tags")
+}
+
+model Comment {
+  id         String   @id @default(cuid())
+  status     String   @default("pending")
+  authorName String?  @map("author_name")
+  authorEmail String? @map("author_email")
+  ipHash     String?  @map("ip_hash")
+  createdAt  DateTime @default(now()) @map("created_at")
+
+  contentId String        @map("content_id")
+  content   CommentContent @relation(fields: [contentId], references: [id])
+
+  postId   String  @map("post_id")
+  post     Post    @relation(fields: [postId], references: [id], onDelete: Cascade)
+
+  userId   String? @map("user_id")
+  user     User?   @relation(fields: [userId], references: [id])
+
+  parentId String?  @map("parent_id")
+  parent   Comment? @relation("CommentTree", fields: [parentId], references: [id], onDelete: SetNull)
+  replies  Comment[] @relation("CommentTree")
+
+  @@index([postId])
+  @@index([status])
+  @@index([contentId])
+  @@index([parentId])  // 新增：优化评论树查询
+  @@index([postId, status])  // 新增：复合索引
+  @@index([createdAt])  // 新增：按时间排序
+  @@map("comments")
+}
+
+model CommentContent {
+  id          String   @id @default(cuid())
+  content     String
+  contentHash String   @unique @map("content_hash")
+  refCount    Int      @default(1) @map("ref_count")
+  createdAt   DateTime @default(now()) @map("created_at")
+
+  comments Comment[]
+
+  @@map("comment_contents")
+}
+
+model SiteConfig {
+  key   String @id
+  value String
+  @@map("site_config")
+}
+
+model TokenBlacklist {
+  tokenHash String   @id
+  userId    String?  @map("user_id")
+  exp       Int
+  createdAt DateTime @default(now()) @map("created_at")
+
+  @@index([exp])
+  @@index([userId])
+  @@map("token_blacklist")
+}
+
+model Captcha {
+  token   String   @id
+  answer  String
+  expires DateTime
+
+  @@index([expires])
+  @@map("captchas")
+}
+
+model EmailVerification {
+  id        String   @id @default(cuid())
+  email     String
+  code      String
+  expires   DateTime
+  createdAt DateTime @default(now()) @map("created_at")
+
+  @@index([email])
+  @@index([expires])
+  @@map("email_verifications")
+}
+
+model PostImage {
+  id        String   @id @default(cuid())
+  url       String
+  sortOrder Int      @map("sort_order")
+  createdAt DateTime @default(now()) @map("created_at")
+
+  postId String @map("post_id")
+  post   Post   @relation(fields: [postId], references: [id], onDelete: Cascade)
+
+  @@index([postId])
+  @@map("post_images")
+}
