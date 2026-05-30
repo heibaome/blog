@@ -3,22 +3,22 @@
 @variant dark (&:where(.dark, .dark *));
 
 @theme {
-  /* 中国风调色板 - 低饱和度 */
-  --color-ink: #2c2c2c;
-  --color-ink-light: #5a5a5a;
+  /* 水墨调色板 — 清雅含蓄 */
+  --color-ink: #1a1a1a;
+  --color-ink-light: #4a4a4a;
   --color-ink-lighter: #8a8a8a;
-  --color-paper: #faf9f7;
-  --color-paper-warm: #f5f3ef;
-  --color-paper-dark: #1a1a1a;
-  --color-accent: #c0483e; /* 朱砂红 */
-  --color-accent-light: #d4655c;
-  --color-accent-muted: #e8a5a0;
-  --color-jade: #5b8c6a; /* 翡翠绿 */
-  --color-jade-light: #7db08e;
-  --color-gold: #c4a35a; /* 古金 */
-  --color-gold-light: #d9c07e;
-  --color-border: #e5e2dc;
-  --color-border-dark: #3a3a3a;
+  --color-paper: #f8f6f3;
+  --color-paper-warm: #f0ede8;
+  --color-paper-dark: #111111;
+  --color-accent: #2d4a5e; /* 墨蓝 — 浓墨泛蓝 */
+  --color-accent-light: #3d6080;
+  --color-accent-muted: #8ba4b8;
+  --color-jade: #5a7a6a; /* 淡墨绿 — 松烟墨 */
+  --color-jade-light: #7a9a8a;
+  --color-gold: #8a7a60; /* 古墨褐 — 宿墨沉淀 */
+  --color-gold-light: #a89878;
+  --color-border: #e5e1da;
+  --color-border-dark: #2a2a2a;
 
   --font-serif: "Source Han Serif SC", "Noto Serif SC", "Songti SC", "SimSun", serif;
   --font-sans: "Source Han Sans SC", "Noto Sans SC", "PingFang SC", "Microsoft YaHei", sans-serif;
@@ -56,26 +56,26 @@ body {
 
 /* 深色模式基础 */
 .dark body {
-  color: #e0ddd8;
+  color: #d8d4ce;
   background-color: var(--color-paper-dark);
 }
 
 /* 深色模式 — 覆盖 CSS 变量 */
 .dark {
-  --color-ink: #e0ddd8;
-  --color-ink-light: #a0a0a0;
-  --color-ink-lighter: #6a6a6a;
-  --color-paper: #1a1a1a;
-  --color-paper-warm: #242424;
-  --color-accent: #e06b62;
-  --color-accent-light: #ed8a83;
-  --color-accent-muted: #c0504a;
-  --color-jade: #6da07c;
-  --color-jade-light: #8abb97;
-  --color-gold: #d9b96e;
-  --color-gold-light: #e6cf90;
-  --color-border: #333333;
-  --color-border-dark: #4a4a4a;
+  --color-ink: #d8d4ce;
+  --color-ink-light: #9a9590;
+  --color-ink-lighter: #605c58;
+  --color-paper: #111111;
+  --color-paper-warm: #1a1a1a;
+  --color-accent: #5a8aa8;
+  --color-accent-light: #6ea0c0;
+  --color-accent-muted: #406878;
+  --color-jade: #6a9a7a;
+  --color-jade-light: #80b090;
+  --color-gold: #a89870;
+  --color-gold-light: #c0b088;
+  --color-border: #2a2a2a;
+  --color-border-dark: #3a3a3a;
 }
 
 /* 标题用黑体 */
@@ -140,7 +140,7 @@ article, .prose {
 }
 
 .dark .prose blockquote {
-  background: #2a2a2a;
+  background: #1e1e1e;
 }
 
 .prose code {
@@ -205,12 +205,12 @@ article, .prose {
 }
 
 .dark .prose th {
-  background: #2a2a2a;
+  background: #1e1e1e;
 }
 
 .dark .prose th,
 .dark .prose td {
-  border-color: #3a3a3a;
+  border-color: #2a2a2a;
 }
 
 /* 滚动条美化 */
@@ -233,11 +233,11 @@ article, .prose {
 }
 
 .dark ::-webkit-scrollbar-thumb {
-  background: #4a4a4a;
+  background: #3a3a3a;
 }
 
 .dark ::-webkit-scrollbar-thumb:hover {
-  background: #5a5a5a;
+  background: #4a4a4a;
 }
 
 /* 动画 */
@@ -304,9 +304,9 @@ article, .prose {
 .dark .skeleton {
   background: linear-gradient(
     90deg,
-    #2a2a2a 25%,
-    #3a3a3a 50%,
-    #2a2a2a 75%
+    #1a1a1a 25%,
+    #2a2a2a 50%,
+    #1a1a1a 75%
   );
   background-size: 200% 100%;
 }

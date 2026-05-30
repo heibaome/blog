@@ -1,0 +1,25 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 1200 630" fill="none">
+  <rect width="1200" height="630" fill="#f8f6f3"/>
+  <!-- Subtle paper texture lines -->
+  <line x1="0" y1="157" x2="1200" y2="157" stroke="#e5e1da" stroke-width="0.5"/>
+  <line x1="0" y1="315" x2="1200" y2="315" stroke="#e5e1da" stroke-width="0.5"/>
+  <line x1="0" y1="472" x2="1200" y2="472" stroke="#e5e1da" stroke-width="0.5"/>
+  <!-- Ink drop icon - large -->
+  <g transform="translate(420, 140)">
+    <path d="M80 10 C80 10, 35 70, 35 100 C35 124.853 55.147 145 80 145 C104.853 145 125 124.853 125 100 C125 70 80 10 80 10Z"
+          fill="#2d4a5e" opacity="0.9"/>
+    <path d="M115 95 Q135 82, 155 90 Q170 96, 165 100 Q158 105, 140 100 Q125 96, 115 95Z"
+          fill="#2d4a5e" opacity="0.5"/>
+    <ellipse cx="70" cy="72" rx="10" ry="18" fill="white" opacity="0.2"/>
+  </g>
+  <!-- Title: 墨迹博客 -->
+  <text x="600" y="380" text-anchor="middle"
+        font-family="'Source Han Serif SC','Noto Serif SC','Songti SC',serif"
+        font-size="72" font-weight="700" fill="#1a1a1a" letter-spacing="12">墨迹博客</text>
+  <!-- Tagline -->
+  <text x="600" y="440" text-anchor="middle"
+        font-family="'Source Han Sans SC','Noto Sans SC','PingFang SC',sans-serif"
+        font-size="28" fill="#8a8a8a" letter-spacing="4">用心书写，以墨留迹</text>
+  <!-- Bottom accent line -->
+  <line x1="480" y1="480" x2="720" y2="480" stroke="#2d4a5e" stroke-width="2" opacity="0.3"/>
+</svg>
