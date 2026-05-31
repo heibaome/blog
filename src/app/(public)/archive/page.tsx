@@ -4,12 +4,17 @@ import Link from "next/link";
 import { ArchiveTitle, ArchiveEmpty, ArchivePostsCount, TranslatedArchiveDate } from "@/components/i18n/Translated";
 import { ScrollReveal, StaggerList, StaggerItem } from "@/components/motion/ScrollReveal";
 import { FolderOpen } from "lucide-react";
+import { getServerLocale, getServerTranslations } from "@/lib/i18n-server";
 
 export const dynamic = "force-dynamic";
 
-export const metadata = buildMetadata({ title: "归档", path: "/archive" });
+export async function generateMetadata() {
+  const { t, locale } = await getServerTranslations();
+  return buildMetadata({ title: t.archive_title, path: "/archive", siteName: t.site_blog_name, locale });
+}
 
 export default async function ArchivePage() {
+  const locale = await getServerLocale();
   let archive: Awaited<ReturnType<typeof postService.getArchive>> = {};
   try {
     archive = await postService.getArchive();
@@ -46,7 +51,7 @@ export default async function ArchivePage() {
                       <time className="text-xs font-sans text-ink-lighter flex-shrink-0 w-10">
                         {post.publishedAt
                           ? new Date(post.publishedAt)
-                              .toLocaleDateString("zh-CN", {
+                              .toLocaleDateString(locale === "zh-CN" ? "zh-CN" : "en-US", {
                                 month: "2-digit",
                                 day: "2-digit",
                               })

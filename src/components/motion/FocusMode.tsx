@@ -9,6 +9,7 @@ import {
   type ReactNode,
 } from "react";
 import { Eye, EyeOff } from "lucide-react";
+import { useLocale } from "@/components/providers/LocaleProvider";
 
 interface FocusContextValue {
   focused: boolean;
@@ -25,6 +26,7 @@ export function useFocusMode() {
 }
 
 export function FocusModeProvider({ children }: { children: ReactNode }) {
+  const { t } = useLocale();
   const [focused, setFocused] = useState(false);
 
   const toggleFocus = useCallback(() => {
@@ -61,7 +63,7 @@ export function FocusModeProvider({ children }: { children: ReactNode }) {
           className="fixed bottom-6 right-6 z-50 p-3 rounded-full bg-paper border border-border shadow-lg
             text-accent hover:text-accent-light hover:bg-paper-warm transition-all duration-200
             animate-fade-in"
-          title="退出专注模式 (Esc)"
+          title={`${t.focus_mode_exit} (Esc)`}
         >
           <EyeOff size={18} />
         </button>
@@ -73,13 +75,14 @@ export function FocusModeProvider({ children }: { children: ReactNode }) {
 /** Header 中的专注模式按钮 */
 export function FocusModeToggle() {
   const { focused, toggleFocus } = useFocusMode();
+  const { t } = useLocale();
 
   return (
     <button
       onClick={toggleFocus}
       className="p-2 rounded-md text-ink-lighter hover:text-ink hover:bg-paper-warm transition-colors"
-      aria-label={focused ? "退出专注模式" : "专注模式"}
-      title={focused ? "退出专注模式 (Esc)" : "专注模式"}
+      aria-label={focused ? t.focus_mode_exit : t.focus_mode_enter}
+      title={focused ? `${t.focus_mode_exit} (Esc)` : t.focus_mode_enter}
     >
       {focused ? <EyeOff size={16} /> : <Eye size={16} />}
     </button>

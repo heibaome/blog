@@ -11,20 +11,12 @@ import { useReadingPrefs, type ReadingPrefs } from "@/components/reading/Reading
 import { useFocusMode } from "@/components/motion/FocusMode";
 import { useLocale } from "@/components/providers/LocaleProvider";
 
-/* ───────── Theme options ───────── */
-const THEME_OPTS: { value: Theme; label: string; icon: typeof Sun }[] = [
-  { value: "light", label: "浅色", icon: Sun },
-  { value: "dark", label: "深色", icon: Moon },
-  { value: "system", label: "跟随系统", icon: Monitor },
+const FONT_OPTS: { value: ReadingPrefs["fontFamily"]; labelKey: keyof ReturnType<typeof useLocale>["t"] }[] = [
+  { value: "serif", labelKey: "reading_font_serif" },
+  { value: "sans", labelKey: "reading_font_sans" },
+  { value: "system", labelKey: "reading_font_system" },
 ];
 
-const FONT_OPTS: { value: ReadingPrefs["fontFamily"]; label: string }[] = [
-  { value: "serif", label: "宋体" },
-  { value: "sans", label: "黑体" },
-  { value: "system", label: "系统" },
-];
-
-/* ───────── Slider ───────── */
 function Slider({
   label, value, min, max, step, unit, onChange,
 }: {
@@ -63,9 +55,9 @@ function Slider({
   );
 }
 
-/* ───────── Sheet toggle button ───────── */
 export function MobileSettingsButton({ className }: { className?: string }) {
   const [open, setOpen] = useState(false);
+  const { t } = useLocale();
 
   return (
     <>
@@ -75,8 +67,8 @@ export function MobileSettingsButton({ className }: { className?: string }) {
           "p-2 rounded-md text-ink-lighter hover:text-ink hover:bg-paper-warm transition-colors",
           className,
         )}
-        aria-label="设置"
-        title="设置"
+        aria-label={t.settings_title}
+        title={t.settings_title}
       >
         <Settings size={16} />
       </button>
@@ -85,7 +77,6 @@ export function MobileSettingsButton({ className }: { className?: string }) {
   );
 }
 
-/* ───────── Bottom Sheet ───────── */
 function SettingsSheet({ onClose }: { onClose: () => void }) {
   const { theme, setTheme } = useTheme();
   const { prefs, updatePref, resetPrefs } = useReadingPrefs();
@@ -99,7 +90,6 @@ function SettingsSheet({ onClose }: { onClose: () => void }) {
     setTimeout(onClose, 250);
   }, [onClose]);
 
-  // Esc 关闭
   useEffect(() => {
     const handler = (e: KeyboardEvent) => {
       if (e.key === "Escape") handleClose();
@@ -108,7 +98,6 @@ function SettingsSheet({ onClose }: { onClose: () => void }) {
     return () => document.removeEventListener("keydown", handler);
   }, [handleClose]);
 
-  // 锁定 body 滚动
   useEffect(() => {
     const prev = document.body.style.overflow;
     document.body.style.overflow = "hidden";
@@ -117,7 +106,6 @@ function SettingsSheet({ onClose }: { onClose: () => void }) {
 
   return (
     <>
-      {/* 遮罩 */}
       <div
         className={clsx(
           "fixed inset-0 z-[100] bg-black/30 backdrop-blur-sm",
@@ -126,7 +114,6 @@ function SettingsSheet({ onClose }: { onClose: () => void }) {
         onClick={handleClose}
       />
 
-      {/* 面板 */}
       <div
         className={clsx(
           "fixed left-0 right-0 bottom-0 z-[101]",
@@ -136,12 +123,10 @@ function SettingsSheet({ onClose }: { onClose: () => void }) {
           closing ? "animate-sheet-out" : "animate-sheet-in",
         )}
       >
-        {/* 拖拽条 */}
         <div className="mx-auto mb-3 h-1 w-10 rounded-full bg-border" />
 
-        {/* 标题栏 */}
         <div className="flex items-center justify-between mb-4">
-          <span className="text-base font-sans font-semibold text-ink">设置</span>
+          <span className="text-base font-sans font-semibold text-ink">{t.settings_title}</span>
           <button
             onClick={handleClose}
             className="p-1.5 rounded-md text-ink-lighter hover:text-ink hover:bg-paper-warm transition-colors"
@@ -150,17 +135,20 @@ function SettingsSheet({ onClose }: { onClose: () => void }) {
           </button>
         </div>
 
-        {/* ── 主题 ── */}
         <section className="mb-5">
           <div className="flex items-center gap-2 mb-2.5">
             <Sun size={14} className="text-ink-lighter" />
-            <span className="text-sm font-sans text-ink-light">主题</span>
+            <span className="text-sm font-sans text-ink-light">{t.theme_label}</span>
           </div>
           <div className="grid grid-cols-3 gap-2">
-            {THEME_OPTS.map(({ value, label, icon: Icon }) => (
+            {[
+              { value: "light", label: t.theme_light, icon: Sun },
+              { value: "dark", label: t.theme_dark, icon: Moon },
+              { value: "system", label: t.theme_system, icon: Monitor },
+            ].map(({ value, label, icon: Icon }) => (
               <button
                 key={value}
-                onClick={() => setTheme(value)}
+                onClick={() => setTheme(value as Theme)}
                 className={clsx(
                   "flex flex-col items-center gap-1.5 py-3 rounded-lg border transition-colors",
                   theme === value
@@ -175,11 +163,10 @@ function SettingsSheet({ onClose }: { onClose: () => void }) {
           </div>
         </section>
 
-        {/* ── 专注模式 ── */}
         <section className="mb-5">
           <div className="flex items-center gap-2 mb-2.5">
             <Eye size={14} className="text-ink-lighter" />
-            <span className="text-sm font-sans text-ink-light">专注模式</span>
+            <span className="text-sm font-sans text-ink-light">{t.focus_mode_label}</span>
           </div>
           <button
             onClick={toggleFocus}
@@ -190,43 +177,41 @@ function SettingsSheet({ onClose }: { onClose: () => void }) {
                 : "border-border text-ink-light hover:text-ink hover:bg-paper-warm",
             )}
           >
-            {focused ? <><EyeOff size={15} /> 退出专注模式</> : <><Eye size={15} /> 开启专注模式</>}
+            {focused ? <><EyeOff size={15} /> {t.focus_mode_exit}</> : <><Eye size={15} /> {t.focus_mode_enter}</>}
           </button>
         </section>
 
-        {/* ── 阅读设置 ── */}
         <section className="mb-5">
           <div className="flex items-center justify-between mb-2.5">
             <div className="flex items-center gap-2">
               <SlidersHorizontal size={14} className="text-ink-lighter" />
-              <span className="text-sm font-sans text-ink-light">阅读偏好</span>
+              <span className="text-sm font-sans text-ink-light">{t.reading_prefs_label}</span>
             </div>
             <button
               onClick={resetPrefs}
               className="flex items-center gap-1 text-xs font-sans text-ink-lighter hover:text-accent transition-colors"
             >
               <RotateCcw size={12} />
-              重置
+              {t.reading_reset}
             </button>
           </div>
 
           <div className="space-y-4">
             <Slider
-              label="字体大小" value={prefs.fontSize}
+              label={t.reading_font_size} value={prefs.fontSize}
               min={12} max={22} step={1} unit="px"
               onChange={(v) => updatePref("fontSize", v)}
             />
             <Slider
-              label="行距" value={prefs.lineHeight}
+              label={t.reading_line_height} value={prefs.lineHeight}
               min={1.4} max={2.4} step={0.1} unit=""
               onChange={(v) => updatePref("lineHeight", v)}
             />
 
-            {/* 字体 */}
             <div className="space-y-1.5">
-              <span className="text-sm font-sans text-ink-light">字体</span>
+              <span className="text-sm font-sans text-ink-light">{t.reading_font_family}</span>
               <div className="grid grid-cols-3 gap-2">
-                {FONT_OPTS.map(({ value, label }) => (
+                {FONT_OPTS.map(({ value, labelKey }) => (
                   <button
                     key={value}
                     onClick={() => updatePref("fontFamily", value)}
@@ -237,7 +222,7 @@ function SettingsSheet({ onClose }: { onClose: () => void }) {
                         : "text-ink-light border-border hover:text-ink hover:bg-paper-warm",
                     )}
                   >
-                    {label}
+                    {t[labelKey]}
                   </button>
                 ))}
               </div>
@@ -245,11 +230,10 @@ function SettingsSheet({ onClose }: { onClose: () => void }) {
           </div>
         </section>
 
-        {/* ── 语言 ── */}
         <section>
           <div className="flex items-center gap-2 mb-2.5">
             <Globe size={14} className="text-ink-lighter" />
-            <span className="text-sm font-sans text-ink-light">语言</span>
+            <span className="text-sm font-sans text-ink-light">{t.language_label}</span>
           </div>
           <div className="grid grid-cols-2 gap-2">
             <button

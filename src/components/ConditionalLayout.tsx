@@ -10,9 +10,11 @@ import { PageTransition } from "@/components/motion/PageTransition";
 import { DisclaimerGate } from "@/components/disclaimer/DisclaimerGate";
 import { FocusModeProvider } from "@/components/motion/FocusMode";
 import { TableOfContents } from "@/components/motion/TableOfContents";
+import { useLocale } from "@/components/providers/LocaleProvider";
 
 export function ConditionalLayout({ children }: { children: React.ReactNode }) {
   const pathname = usePathname();
+  const { t } = useLocale();
   const isAdmin = pathname.startsWith("/admin");
 
   if (isAdmin) {
@@ -31,7 +33,7 @@ export function ConditionalLayout({ children }: { children: React.ReactNode }) {
             href="#main-content"
             className="sr-only focus:not-sr-only focus:fixed focus:top-2 focus:left-2 focus:z-[100] focus:px-4 focus:py-2 focus:bg-accent focus:text-white focus:rounded-lg focus:text-sm focus:font-sans"
           >
-            跳到主要内容
+            {t.skip_to_content}
           </a>
           <ReadingProgress />
           <Header />

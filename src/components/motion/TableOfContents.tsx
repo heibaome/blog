@@ -3,6 +3,7 @@
 import { useState, useEffect, useRef, useCallback } from "react";
 import { List, X, ChevronRight } from "lucide-react";
 import { clsx } from "clsx";
+import { useLocale } from "@/components/providers/LocaleProvider";
 
 interface TocItem {
   id: string;
@@ -28,6 +29,7 @@ function extractHeadings(container: HTMLElement | null): TocItem[] {
 }
 
 export function TableOfContents() {
+  const { t } = useLocale();
   const [items, setItems] = useState<TocItem[]>([]);
   const [activeId, setActiveId] = useState<string>("");
   const [open, setOpen] = useState(false);
@@ -98,11 +100,11 @@ export function TableOfContents() {
       {/* 桌面端：右侧悬浮面板 */}
       <nav
         className="hidden lg:block fixed right-6 top-1/2 -translate-y-1/2 z-30"
-        aria-label="文章目录"
+        aria-label={t.toc_title}
       >
         <div className="w-52 max-h-[70vh] overflow-y-auto p-3 rounded-lg border border-border bg-paper/90 backdrop-blur-sm shadow-sm">
           <p className="text-xs font-sans font-semibold text-ink-lighter mb-2 px-3">
-            目录
+            {t.toc_title}
           </p>
           <ul className="space-y-0.5">
             {items.map((item) => (
@@ -131,8 +133,8 @@ export function TableOfContents() {
           onClick={() => setOpen(!open)}
           className="fixed bottom-20 right-6 z-30 p-3 rounded-full bg-paper border border-border shadow-lg
             text-ink-lighter hover:text-ink hover:bg-paper-warm transition-all"
-          aria-label="文章目录"
-          title="文章目录"
+          aria-label={t.toc_mobile_title}
+          title={t.toc_mobile_title}
         >
           {open ? <X size={18} /> : <List size={18} />}
         </button>
@@ -148,7 +150,7 @@ export function TableOfContents() {
             <div className="fixed bottom-0 left-0 right-0 z-40 bg-paper border-t border-border rounded-t-2xl shadow-2xl max-h-[60vh] overflow-y-auto p-4 animate-slide-up">
               <div className="flex items-center justify-between mb-3">
                 <p className="text-sm font-sans font-semibold text-ink">
-                  📑 文章目录
+                  {t.toc_mobile_title}
                 </p>
                 <button
                   onClick={() => setOpen(false)}

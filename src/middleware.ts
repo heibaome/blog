@@ -12,10 +12,6 @@ import {
 } from "@/shared/site-secret";
 
 const PROTECTED_PREFIXES = ["/admin"];
-
-/**
- * Base64URL 解码（JWT 使用 base64url 编码）
- */
 function base64UrlDecode(str: string): Uint8Array {
   // base64url → base64
   const base64 = str.replace(/-/g, "+").replace(/_/g, "/");
@@ -311,7 +307,7 @@ export async function middleware(request: NextRequest) {
   // middleware 不再跳转到 /disclaimer 页面，由弹窗组件控制展示
   // 此处保留 cookie 检查逻辑，便于将来需要时使用
 
-  // 页面路由：种站点访问验证 Cookie
+  // 页面路由：种站点访问验证 Cookie + 设置语言请求头
   // 注意：页面路由不设 CSP，因为 ISR 缓存的 HTML 中脚本标签没有 nonce，
   // 强制 CSP 会拦截 Next.js 的内联脚本导致页面功能异常。
   // XSS 防护由 sanitizeHtml (DOMPurify) 白名单机制保障。
@@ -323,6 +319,24 @@ export async function middleware(request: NextRequest) {
   if (!hasCookie) {
     await setSiteVerifyCookie(response);
   }
+
+  // 设置语言请求头，供服务端组件读取
+  const cookieLocale = request.cookies.get("moji-locale")?.value;
+  const acceptLang = request.headers.get("accept-language") || "";
+
+  let resolvedLocale = "zh-CN";
+  if (cookieLocale === "en-US" || cookieLocale === "zh-CN") {
+    resolvedLocale = cookieLocale;
+  } else {
+    // Fall back to Accept-Language
+    const langs = acceptLang.split(",").map((l) => l.split(";")[0].trim().toLowerCase());
+    for (const lang of langs) {
+      if (lang.startsWith("en")) { resolvedLocale = "en-US"; break; }
+      if (lang.startsWith("zh")) { resolvedLocale = "zh-CN"; break; }
+    }
+  }
+
+  response.headers.set("x-moji-locale", resolvedLocale);
 
   return response;
 }

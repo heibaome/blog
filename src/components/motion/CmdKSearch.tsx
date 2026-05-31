@@ -4,13 +4,10 @@ import { useState, useEffect, useRef, useCallback } from "react";
 import { Search, ArrowRight } from "lucide-react";
 import { useDebounce, useScrollLock, useEscapeKey } from "@/hooks";
 import { useRouter } from "next/navigation";
+import { useLocale } from "@/components/providers/LocaleProvider";
 
-/**
- * ⌘K / Ctrl+K 搜索面板
- * 键盘快捷键触发，输入即搜，Enter 跳转
- * 移动端通过 Header 的搜索按钮触发（dispatch ⌘K 事件）
- */
 export function CmdKSearch() {
+  const { t } = useLocale();
   const [open, setOpen] = useState(false);
   const [query, setQuery] = useState("");
   const debouncedQuery = useDebounce(query, 300);
@@ -20,13 +17,9 @@ export function CmdKSearch() {
   const inputRef = useRef<HTMLInputElement>(null);
   const router = useRouter();
 
-  // 使用共享的滚动锁定 Hook
   useScrollLock(open);
-
-  // 使用共享的 ESC 键 Hook
   useEscapeKey(() => setOpen(false), open);
 
-  // 全局键盘监听（⌘K / Ctrl+K）
   useEffect(() => {
     function onKey(e: KeyboardEvent) {
       if ((e.metaKey || e.ctrlKey) && e.key === "k") {
@@ -38,7 +31,6 @@ export function CmdKSearch() {
     return () => window.removeEventListener("keydown", onKey);
   }, []);
 
-  // 打开时聚焦输入框
   useEffect(() => {
     if (open) {
       setQuery("");
@@ -48,7 +40,6 @@ export function CmdKSearch() {
     }
   }, [open]);
 
-  // 搜索
   useEffect(() => {
     if (!debouncedQuery.trim()) { setResults([]); return; }
     let cancelled = false;
@@ -80,18 +71,15 @@ export function CmdKSearch() {
     }
   }, [results, selectedIdx, router]);
 
-  // 关闭时不渲染任何 DOM，避免遮挡其他元素
   if (!open) return null;
 
   return (
     <>
-      {/* 背景遮罩 */}
       <div
         className="fixed inset-0 z-[69] bg-black/30 backdrop-blur-sm"
         style={{ touchAction: "none" }}
         onClick={() => setOpen(false)}
       />
-      {/* 搜索面板 */}
       <div
         className="fixed inset-0 z-[70] flex items-start justify-center pointer-events-none"
         style={{ top: "80px" }}
@@ -109,7 +97,7 @@ export function CmdKSearch() {
               value={query}
               onChange={(e) => setQuery(e.target.value)}
               onKeyDown={handleKeyDown}
-              placeholder="搜索文章…"
+              placeholder={t.search_cmdk_placeholder}
               className="flex-1 bg-transparent text-sm font-sans text-ink placeholder:text-ink-lighter outline-none"
             />
             <kbd className="px-1.5 py-0.5 rounded bg-paper-warm text-[10px] font-mono text-ink-lighter">ESC</kbd>
@@ -119,7 +107,7 @@ export function CmdKSearch() {
             style={{ touchAction: "pan-y" }}
           >
             {loading ? (
-              <div className="px-4 py-8 text-center text-sm text-ink-lighter font-sans">搜索中…</div>
+              <div className="px-4 py-8 text-center text-sm text-ink-lighter font-sans">{t.search_cmdk_loading}</div>
             ) : results.length > 0 ? (
               <ul className="py-2">
                 {results.map((post, idx) => (
@@ -143,9 +131,9 @@ export function CmdKSearch() {
                 ))}
               </ul>
             ) : query.trim() ? (
-              <div className="px-4 py-8 text-center text-sm text-ink-lighter font-sans">没有找到相关文章</div>
+              <div className="px-4 py-8 text-center text-sm text-ink-lighter font-sans">{t.search_cmdk_no_results}</div>
             ) : (
-              <div className="px-4 py-8 text-center text-sm text-ink-lighter font-sans">输入关键词搜索文章</div>
+              <div className="px-4 py-8 text-center text-sm text-ink-lighter font-sans">{t.search_cmdk_hint}</div>
             )}
           </div>
         </div>

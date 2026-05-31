@@ -10,33 +10,32 @@ import {
   HomeViewAll,
   HomeEmpty,
 } from "@/components/i18n/Translated";
+import { getServerTranslations } from "@/lib/i18n-server";
 
-// ISR：页面静态缓存，每 5 分钟自动检查更新
-// 首页内容更新频率低，使用 ISR 减少每次请求的 SSR 开销
-// 文章发布/修改后通过 revalidatePath 立即刷新，无需等待周期
 export const revalidate = 300;
 
-export const metadata = buildMetadata({
-  title: "首页",
-  description: "墨迹博客 - 用心书写，以墨留迹",
-});
+export async function generateMetadata() {
+  const { t, locale } = await getServerTranslations();
+  return buildMetadata({
+    title: t.nav_home,
+    description: t.home_meta_description,
+    siteName: t.site_blog_name,
+    locale,
+  });
+}
 
 export default async function HomePage() {
   let posts: Awaited<ReturnType<typeof postService.getPublishedPosts>> | null = null;
   try {
     posts = await postService.getPublishedPosts({ page: 1, pageSize: 10 });
-  } catch {
-    // Database might not be set up yet
-  }
+  } catch {}
 
   return (
     <div>
-      {/* Hero — 渐入效果 */}
       <ScrollReveal duration={0.6} y={12}>
         <HomeHero />
       </ScrollReveal>
 
-      {/* 文章列表 */}
       <section className="mt-10">
         <ScrollReveal delay={0.1}>
           <div className="flex items-center justify-between mb-6">

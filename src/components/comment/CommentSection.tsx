@@ -271,9 +271,9 @@ export function CommentSection({ postId }: CommentSectionProps) {
         </div>
       ) : loadError ? (
         <div className="text-center py-8 space-y-3">
-          <p className="text-sm text-ink-lighter">加载评论失败</p>
+          <p className="text-sm text-ink-lighter">{t.comment_load_failed}</p>
           <button onClick={() => { setLoading(true); setLoadError(false); fetchComments(); }}
-            className="text-xs text-accent hover:underline">点击重试</button>
+            className="text-xs text-accent hover:underline">{t.comment_retry}</button>
         </div>
       ) : comments.length === 0 ? (
         <p className="text-center text-ink-lighter text-sm py-8">{t.comment_empty}</p>

@@ -26,6 +26,54 @@ export interface Translations {
   // Post card
   post_views: string;
   post_comments: string;
+  post_reading_time_suffix: string;
+  post_prev: string;
+  post_next: string;
+  post_author_badge: string;
+
+  // TOC
+  toc_title: string;
+  toc_mobile_title: string;
+
+  // Settings
+  settings_title: string;
+  theme_label: string;
+  theme_light: string;
+  theme_dark: string;
+  theme_system: string;
+  focus_mode_label: string;
+  focus_mode_enter: string;
+  focus_mode_exit: string;
+  reading_prefs_label: string;
+  reading_font_size: string;
+  reading_line_height: string;
+  reading_font_family: string;
+  reading_font_serif: string;
+  reading_font_sans: string;
+  reading_font_system: string;
+  reading_reset: string;
+  language_label: string;
+
+  // Search (Cmd+K)
+  search_cmdk_placeholder: string;
+  search_cmdk_loading: string;
+  search_cmdk_no_results: string;
+  search_cmdk_hint: string;
+
+  // Skip link
+  skip_to_content: string;
+
+  // Comment
+  comment_load_failed: string;
+  comment_retry: string;
+
+  // About metadata
+  about_meta_description: string;
+
+  // Site
+  site_blog_name: string;
+  site_default_author: string;
+  home_meta_description: string;
 
   // Post page
   post_not_found: string;
@@ -168,8 +216,54 @@ const zhCN: Translations = {
   home_view_all: "查看全部",
   home_empty: "还没有文章，去后台写一篇吧",
 
-  post_views: "",
-  post_comments: "",
+  post_views: "浏览",
+  post_comments: "评论",
+  post_reading_time_suffix: "分钟",
+  post_prev: "上一篇",
+  post_next: "下一篇",
+  post_author_badge: "博主",
+
+  // TOC
+  toc_title: "目录",
+  toc_mobile_title: "文章目录",
+
+  // Settings
+  settings_title: "设置",
+  theme_label: "主题",
+  theme_light: "浅色",
+  theme_dark: "深色",
+  theme_system: "跟随系统",
+  focus_mode_label: "专注模式",
+  focus_mode_enter: "开启专注模式",
+  focus_mode_exit: "退出专注模式",
+  reading_prefs_label: "阅读偏好",
+  reading_font_size: "字体大小",
+  reading_line_height: "行距",
+  reading_font_family: "字体",
+  reading_font_serif: "宋体",
+  reading_font_sans: "黑体",
+  reading_font_system: "系统",
+  reading_reset: "重置",
+  language_label: "语言",
+
+  // Search (Cmd+K)
+  search_cmdk_placeholder: "搜索文章…",
+  search_cmdk_loading: "搜索中…",
+  search_cmdk_no_results: "没有找到相关文章",
+  search_cmdk_hint: "输入关键词搜索文章",
+
+  // Skip link
+  skip_to_content: "跳到主要内容",
+
+  // Disclaimer
+  comment_load_failed: "加载评论失败",
+  comment_retry: "点击重试",
+
+  about_meta_description: "了解博客作者和博客的初衷",
+
+  site_blog_name: "墨迹博客",
+  site_default_author: "墨迹",
+  home_meta_description: "墨迹博客 - 用心书写，以墨留迹",
 
   post_not_found: "文章不存在",
 
@@ -300,8 +394,54 @@ const enUS: Translations = {
   home_view_all: "View all",
   home_empty: "No posts yet — head to the dashboard to write one",
 
-  post_views: "",
-  post_comments: "",
+  post_views: "views",
+  post_comments: "comments",
+  post_reading_time_suffix: "min read",
+  post_prev: "Previous",
+  post_next: "Next",
+  post_author_badge: "Author",
+
+  // TOC
+  toc_title: "TOC",
+  toc_mobile_title: "Table of Contents",
+
+  // Settings
+  settings_title: "Settings",
+  theme_label: "Theme",
+  theme_light: "Light",
+  theme_dark: "Dark",
+  theme_system: "System",
+  focus_mode_label: "Focus Mode",
+  focus_mode_enter: "Enter Focus Mode",
+  focus_mode_exit: "Exit Focus Mode",
+  reading_prefs_label: "Reading Preferences",
+  reading_font_size: "Font Size",
+  reading_line_height: "Line Height",
+  reading_font_family: "Font",
+  reading_font_serif: "Serif",
+  reading_font_sans: "Sans",
+  reading_font_system: "System",
+  reading_reset: "Reset",
+  language_label: "Language",
+
+  // Search (Cmd+K)
+  search_cmdk_placeholder: "Search posts…",
+  search_cmdk_loading: "Searching…",
+  search_cmdk_no_results: "No matching posts found",
+  search_cmdk_hint: "Type to search posts",
+
+  // Skip link
+  skip_to_content: "Skip to content",
+
+  // Disclaimer
+  comment_load_failed: "Failed to load comments",
+  comment_retry: "Click to retry",
+
+  about_meta_description: "Learn about the blog author and the purpose of this blog",
+
+  site_blog_name: "Moji Blog",
+  site_default_author: "Moji",
+  home_meta_description: "Moji Blog — Writing with heart, leaving traces in ink",
 
   post_not_found: "Post not found",
 
@@ -429,4 +569,41 @@ export function getTranslations(locale: Locale): Translations {
 
 export function t(key: keyof Translations, locale: Locale): string {
   return getTranslations(locale)[key];
+}
+
+/**
+ * Parse locale from Cookie (server-side only)
+ * Returns "zh-CN" as default
+ */
+export function getLocaleFromCookie(cookieHeader: string | undefined): Locale {
+  if (!cookieHeader) return "zh-CN";
+  const match = cookieHeader.match(/(?:^|;\s*)moji-locale=([^;]+)/);
+  const value = match?.[1];
+  if (value === "en-US") return "en-US";
+  if (value === "zh-CN") return "zh-CN";
+  return "zh-CN";
+}
+
+/**
+ * Parse locale from Accept-Language header
+ * Returns "zh-CN" as default
+ */
+export function getLocaleFromAcceptLanguage(acceptLang: string | undefined): Locale {
+  if (!acceptLang) return "zh-CN";
+  const langs = acceptLang.split(",").map((l) => l.split(";")[0].trim().toLowerCase());
+  for (const lang of langs) {
+    if (lang.startsWith("zh")) return "zh-CN";
+    if (lang.startsWith("en")) return "en-US";
+  }
+  return "zh-CN";
+}
+
+/**
+ * Determine locale from request headers (server-side)
+ * Priority: Cookie > Accept-Language > default ("zh-CN")
+ */
+export function getServerLocale(cookieHeader?: string, acceptLang?: string): Locale {
+  const cookieLocale = getLocaleFromCookie(cookieHeader);
+  if (cookieLocale !== "zh-CN") return cookieLocale;
+  return getLocaleFromAcceptLanguage(acceptLang);
 }

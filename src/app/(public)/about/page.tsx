@@ -10,8 +10,12 @@ import {
   AboutEmail,
 } from "@/components/i18n/Translated";
 import { Mail } from "lucide-react";
+import { getServerTranslations } from "@/lib/i18n-server";
 
-export const metadata = buildMetadata({ title: "关于", path: "/about" });
+export async function generateMetadata() {
+  const { t, locale } = await getServerTranslations();
+  return buildMetadata({ title: t.nav_about, description: t.about_meta_description, path: "/about", siteName: t.site_blog_name, locale });
+}
 
 export default function AboutPage() {
   return (

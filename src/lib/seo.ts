@@ -1,6 +1,6 @@
 import type { Metadata } from "next";
+import type { Locale } from "./i18n";
 
-const SITE_NAME = "墨迹博客";
 const SITE_URL = process.env.NEXT_PUBLIC_SITE_URL || "http://localhost:3000";
 
 export function buildMetadata({
@@ -12,6 +12,8 @@ export function buildMetadata({
   publishedTime,
   modifiedTime,
   authors,
+  siteName,
+  locale = "zh-CN",
 }: {
   title?: string;
   description?: string;
@@ -21,10 +23,14 @@ export function buildMetadata({
   publishedTime?: string;
   modifiedTime?: string;
   authors?: string[];
+  siteName?: string;
+  locale?: Locale;
 }): Metadata {
-  const fullTitle = title ? `${title} | ${SITE_NAME}` : SITE_NAME;
+  const name = siteName || "墨迹博客";
+  const fullTitle = title ? `${title} | ${name}` : name;
   const desc = description || "一个用心书写的博客";
   const url = `${SITE_URL}${path}`;
+  const ogLocale = locale === "zh-CN" ? "zh_CN" : "en_US";
 
   return {
     title: fullTitle,
@@ -34,8 +40,8 @@ export function buildMetadata({
       title: fullTitle,
       description: desc,
       url,
-      siteName: SITE_NAME,
-      locale: "zh_CN",
+      siteName: name,
+      locale: ogLocale,
       type,
       images: [{ url: image || `${SITE_URL}/og-default.png` }],
       ...(type === "article" && publishedTime ? { publishedTime } : {}),

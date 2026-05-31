@@ -142,7 +142,7 @@ export function LoginTitle() {
   const { t } = useLocale();
   return (
     <>
-      {t.login_title}<span className="text-accent">迹</span> {t.nav_admin}
+      {t.login_title}<span className="text-accent">{t.site_name_accent}</span> {t.nav_admin}
     </>
   );
 }

@@ -6,10 +6,10 @@ import { ReadingProvider } from "@/components/reading/ReadingProvider";
 import { LocaleProvider } from "@/components/providers/LocaleProvider";
 import { ToastProvider } from "@/components/providers/ToastProvider";
 import { ConditionalLayout } from "@/components/ConditionalLayout";
+import { getServerLocale } from "@/lib/i18n-server";
 
 export const metadata: Metadata = buildMetadata({});
 
-// 内联脚本：在 DOM 渲染前应用主题，防止 FOUC
 const themeScript = `
 (function(){
   try {
@@ -23,7 +23,6 @@ const themeScript = `
 })();
 `;
 
-// 内联脚本：在 DOM 渲染前应用阅读偏好
 const readingScript = `
 (function(){
   try {
@@ -40,13 +39,14 @@ const readingScript = `
 })();
 `;
 
-export default function RootLayout({
+export default async function RootLayout({
   children,
 }: Readonly<{
   children: React.ReactNode;
 }>) {
+  const locale = await getServerLocale();
   return (
-    <html lang="zh-CN" suppressHydrationWarning>
+    <html lang={locale} suppressHydrationWarning>
       <head>
         <link rel="icon" type="image/svg+xml" href="/favicon.svg" />
         <link rel="manifest" href="/manifest.json" />
