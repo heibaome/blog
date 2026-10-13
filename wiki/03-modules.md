@@ -1,6 +1,12 @@
 # 03 · 业务模块（src/modules）
 
-> 业务逻辑层采用面向服务架构（Service Class）。每个模块导出单例（如 `postService`），统一通过 `@/shared/db` 的 Prisma 单例访问数据库，错误统一抛 `AppError`（shared/errors.ts）。
+> 🏠 [Wiki 首页](README.md) ｜ ⬅️ [02-数据模型](02-data-model.md) ｜ **当前：03 业务模块** ｜ 下一章 → [04-API 参考](04-api-reference.md)
+
+**本文包含**：[1. 模块清单](#1-模块清单) · [2. AuthService](#2-authservice) · [3. PostService](#3-postservice) · [4. CommentService](#4-commentservice) · [5. Category/Tag](#5-categoryservice--tagservice) · [6. SearchService](#6-searchservice) · [7. ConfigService](#7-configservice) · [8. 模块间依赖](#8-模块间依赖)
+
+> 架构约定：Service Class + 模块级单例导出（如 `postService`），统一经 `@/shared/db` Prisma 单例访问数据库，错误统一抛 `AppError`。
+
+---
 
 ## 1. 模块清单
 
@@ -26,72 +32,135 @@ class AuthService {
 export const authService = new AuthService();
 ```
 
-关键行为：
-- `login`：`input.username` 含 `@` 按 email 查，否则按 username 查；bcrypt 校验；成功后 `blacklistAllUserTokens(user.id)` **踢掉所有旧会话（单地登录）**，再签发新 JWT。
-- `updateProfile`：字段级增量更新；email 更新前查重（409）。
+| 方法 | 关键行为 |
+|---|---|
+| `login` | `input.username` 含 `@` 按 email 查、否则按 username 查；bcrypt 校验；成功后 `blacklistAllUserTokens(user.id)` 🔒 **单地登录**踢掉所有旧会话，再签发新 JWT |
+| `register` | 用户名/邮箱查重（409）；bcrypt 12 轮；默认 `author` 角色（⚠️ 路由层已关闭注册） |
+| `getProfile` | select 白名单字段 + `_count.posts`；404 兜底 |
+| `updateProfile` | 字段级增量更新；email 更新前查重（409）；空更新抛 400 |
 
 ## 3. PostService
 
-模块级共享导出：
-- `AUTHOR_PUBLIC_SELECT` = `{ displayName, avatar, role }` —— 前台作者公开字段
-- `AUTHOR_ADMIN_SELECT` = `{ id, username }` —— 后台作者字段
-- `buildSearchWhere(search, fields?)` —— 构造 `OR: [{field: {contains}}]`，与 SearchService 共用
+**模块级共享导出**：
+
+| 导出 | 用途 |
+|---|---|
+| `AUTHOR_PUBLIC_SELECT` | 前台作者公开字段 `{displayName, avatar, role}` |
+| `AUTHOR_ADMIN_SELECT` | 后台作者字段 `{id, username}` |
+| `buildSearchWhere(search, fields?)` | 构造 `OR: [{field: {contains}}]`，与 SearchService 共用 |
+
+### 方法一览
 
 | 方法 | 签名要点 | 说明 |
 |---|---|---|
-| `getPublishedPosts` | `(PaginationInput)` → `{posts, page, pageSize, hasMore}` | 前台列表；`status=published`，排序 `[isTop desc, publishedAt desc]`，含作者/分类/标签/评论数；取 `pageSize+1` 判断 hasMore |
-| `getPostBySlugStatic` | `(slug)` → Post | 静态渲染用，不递增浏览量；含 images（按 sortOrder） |
-| `incrementViewCount` | `(slug)` → `{viewCount}` | `update viewCount: {increment:1}`；P2025 转 404 |
-| `getViewCount` | `(slug)` → `{viewCount}` | 只读 |
+| `getPublishedPosts` | `(PaginationInput)` → `{posts, page, pageSize, hasMore}` | 前台列表；`status=published`；排序 `[isTop desc, publishedAt desc]`；含作者/分类/标签/评论数；取 `pageSize+1` 判断 hasMore |
+| `getPostBySlugStatic` | `(slug)` → Post | 静态渲染用，**不递增浏览量**；含 images（按 sortOrder） |
+| `incrementViewCount` | `(slug)` → `{viewCount}` | `update viewCount: {increment:1}`；Prisma P2025 转 404 |
+| `getViewCount` | `(slug)` → `{viewCount}` | 只读，ViewCounter 组件轮询 |
 | `getAllPosts` | `(PaginationInput & {status?})` → `{posts, total, totalPages}` | 后台列表；搜索仅 title/summary；`Promise.all` 并行取数与计数 |
 | `getPostById` | `(id)` | 后台编辑用，含 tags/images |
-| `createPost` | `(CreatePostInput, authorId)` | slug 查重（409）；`status=published` 时写入 `publishedAt`；tagIds 建关联 |
-| `updatePost` | `(id, UpdatePostInput)` | **显式白名单**逐字段拷贝，防止意外写入；slug 变更查重；状态从非 published→published 时补 `publishedAt`；tagIds 用 `deleteMany + create` 全量替换 |
-| `deletePost` | `(id)` | 先删 DB 记录（PostImage 级联）→ 再删图片磁盘文件 → `cleanupPostImages()` 清理正文/封面内嵌图片 |
-| `getPostsByCategory` | `(categorySlug, PaginationInput)` | 分类不存在抛 404，返回 `{category, posts, hasMore}` |
-| `getPostsByTag` | `(tagSlug, PaginationInput)` | `tags: {some: {tagId}}` 过滤，返回 `{tag, posts, hasMore}` |
-| `getArchive` | `()` → `Record<"YYYY-MM", Post[]>` | 按月分组归档，`take: 1000` 上限保护 |
-| `getAdjacentPosts` | `(publishedAt, currentId)` | 上一篇（`lt` 取最近）/下一篇（`gt` 取最早） |
+| `createPost` | `(CreatePostInput, authorId)` | slug 查重（409）；`status=published` 时写 `publishedAt`；tagIds 建关联 |
+| `updatePost` | `(id, UpdatePostInput)` | 🔒 **显式白名单**逐字段拷贝防意外写入；slug 变更查重；非 published→published 补 `publishedAt`；tagIds `deleteMany + create` 全量替换 |
+| `deletePost` | `(id)` | 先删 DB（级联）→ 再删图片磁盘文件 → `cleanupPostImages()` 清正文/封面内嵌图 |
+| `getPostsByCategory` | `(categorySlug, PaginationInput)` | 分类 404 兜底；返回 `{category, posts, hasMore}` |
+| `getPostsByTag` | `(tagSlug, PaginationInput)` | `tags: {some: {tagId}}` 过滤；返回 `{tag, posts, hasMore}` |
+| `getArchive` | `()` → `Record<"YYYY-MM", Post[]>` | 按月分组；`take: 1000` 上限保护防内存溢出 |
+| `getAdjacentPosts` | `(publishedAt, currentId)` | 上一篇（`lt` 取最近）/ 下一篇（`gt` 取最早） |
+
+```mermaid
+flowchart LR
+    subgraph 前台公开
+        A[getPublishedPosts] --> B[getPostBySlugStatic]
+        B --> C[incrementViewCount / getViewCount]
+        A --> D[getPostsByCategory / getPostsByTag]
+        D --> E[getArchive]
+        B --> F[getAdjacentPosts]
+    end
+    subgraph 后台管理
+        G[getAllPosts] --> H[createPost / updatePost]
+        H --> I[deletePost + 文件清理]
+    end
+```
 
 ## 4. CommentService
 
-内部工具函数（模块私有）：
-- `normalizeContent(raw)` / `contentHash(normalized)` —— trim+lowercase 后 sha256
-- `getOrCreateContent(raw)` —— 哈希命中则 `refCount+1`，否则新建
-- `releaseContent(contentId)` —— `refCount-1`，减到 0 删除记录
-- `formatComment(c)` —— 剥离 `authorEmail/ipHash` 敏感字段，注入 `content` 文本与空 `replies`
-- `buildCommentTree(all)` —— **O(n) 两遍扫描**（Map 索引）构建楼中楼树
+**模块私有工具**：
+
+| 函数 | 说明 |
+|---|---|
+| `normalizeContent` / `contentHash` | trim+lowercase → sha256 |
+| `getOrCreateContent(raw)` | 哈希命中 `refCount+1`，否则新建 |
+| `releaseContent(contentId)` | `refCount-1`，减到 0 物理删除 |
+| `formatComment(c)` | 🔒 剥离 `authorEmail/ipHash` 敏感字段，注入 content 文本与空 replies |
+| `buildCommentTree(all)` | 💡 **O(n) 两遍扫描**（Map 索引）构建楼中楼树，避免嵌套循环 |
+
+### 方法一览
 
 | 方法 | 说明 |
 |---|---|
-| `getPostComments(postId)` | 前台：仅 `status=approved`，按时间升序，O(n) 建树 |
-| `createComment(input, userId?, ip?, userRole?)` | ① 校验 post 存在、parentId 属于同一 post；② 自动通过判定：`userRole==="admin"`，或匿名邮箱匹配到 admin 用户邮箱（并归属其 userId）；③ `validateAndSanitizeComment()` 净化；④ 内容去重入库；⑤ 匿名评论存 `sanitizeText(authorName)`（默认"匿名用户"）与 `hashIP(ip)`，否则不存；⑥ 状态 `autoApprove ? approved : pending` |
+| `getPostComments(postId)` | 前台：仅 `approved`，时间升序，O(n) 建树 |
+| `createComment(input, userId?, ip?, userRole?)` | 见下方流程图 |
 | `getAllComments({page,pageSize,status?,search?,postId?})` | 后台：搜索覆盖评论内容/昵称/用户名；关联 post、user |
-| `getPostOptions()` | 最近 100 篇文章 `{id,title}`，供后台评论筛选下拉 |
+| `getPostOptions()` | 最近 100 篇 `{id,title}`，后台筛选下拉 |
 | `updateCommentStatus(id, status)` | 单条审核 |
 | `batchUpdateStatus(ids, status)` | `updateMany`，上限 100 条 |
-| `batchDelete(ids)` | 逐条调 `deleteComment`，失败跳过，返回成功数 |
-| `deleteComment(id)` | 子评论处理：长子过继给祖父，其余挂到长子；删除后释放 CommentContent |
+| `batchDelete(ids)` | 逐条删、失败跳过、返回成功数 |
+| `deleteComment(id)` | 子评论过继 + 释放 CommentContent |
+
+### 创建评论流程
+
+```mermaid
+flowchart TB
+    S["createComment(input)"] --> V1["① 校验 post 存在 / parentId 属同一 post"]
+    V1 --> V2{"② 自动通过判定"}
+    V2 -->|"userRole === admin"| AA[autoApprove = true]
+    V2 -->|"匿名邮箱 = admin 邮箱"| AB["autoApprove + 归属 admin userId"]
+    V2 -->|其他| PE["待审核 pending"]
+    AA & PE --> V3["③ validateAndSanitizeComment() 净化"]
+    AB --> V3
+    V3 --> V4["④ 内容去重 getOrCreateContent<br/>(sha256 + refCount)"]
+    V4 --> V5{"⑤ 登录用户?"}
+    V5 -->|是| L1["存 userId，不存昵称/邮箱"]
+    V5 -->|否| L2["存 sanitizeText(authorName)<br/>默认'匿名用户' + hashIP(ip)"]
+    L1 & L2 --> V6["⑥ 写入 status: approved/pending"]
+```
 
 ## 5. CategoryService / TagService
 
-- `CategoryService`：分类 CRUD；处理父子分类与 `sortOrder`；唯一约束冲突（P2002）经 `handlePrismaUniqueError` 转友好报错；删除前检查子分类存在性。
-- `TagService`：标签 CRUD；创建/更新做 slug 唯一性处理；删除前存在性校验。
+| Service | 要点 |
+|---|---|
+| `CategoryService` | 分类 CRUD；父子分类 + `sortOrder`；P2002 唯一冲突经 `handlePrismaUniqueError` 转友好报错；**删除前检查子分类** |
+| `TagService` | 标签 CRUD；slug 唯一性处理；删除前存在性校验 |
 
 ## 6. SearchService
 
-复用 `PostService.buildSearchWhere`，仅查 `status=published`，按 `publishedAt desc` 排序，返回摘要与分类信息，供 `/api/search`（Cmd+K 全局搜索与搜索页）使用。
+复用 `PostService.buildSearchWhere`，仅查 `published`，按 `publishedAt desc`，返回摘要 + 分类信息 → 供 `/api/search`（Cmd+K 弹层与搜索页）。
 
 ## 7. ConfigService
 
-站点配置 KV 读写：读取时提供默认配置兜底，写入用 `prisma.siteConfig.upsert`（按 key 创建或更新）。
+站点配置 KV 读写：读取带**默认配置兜底**，写入用 `prisma.siteConfig.upsert`（按 key 创建或更新）。
 
 ## 8. 模块间依赖
 
+```mermaid
+flowchart TB
+    API["app/api/* 路由"] --> SEC["shared/security<br/>requireAuth / requireAdmin"]
+    API --> SV
+    subgraph SV["modules/"]
+        SSO["SearchService"] -.复用 buildSearchWhere.-> SPO["PostService"]
+        SCO["CommentService"] --> SAN["lib/sanitize 净化"]
+        SCO --> SEC2["shared/security hashIP"]
+        SPO --> FIL["shared/files 图片清理"]
+        SPO --> PAG["shared/paginate 分页"]
+        SCA["CategoryService"] --> PH["shared/prisma-helpers"]
+        STA["TagService"] --> PH
+    end
+    SEC --> AU["AuthService"]
+    SV --> DB["shared/db prisma 单例"]
+    SV --> ERR["shared/errors AppError"]
+    DB --> DBT[("SQLite")]
 ```
-SearchService ──复用──► PostService.buildSearchWhere
-CommentService ──► lib/sanitize（净化）、shared/security（hashIP）
-PostService ──► shared/files（图片清理）、shared/paginate（分页）
-全部 Service ──► shared/db（prisma 单例）、shared/errors（AppError）
-API 路由 ──► shared/security（requireAuth/requireAdmin）──► modules/*Service
-```
+
+---
+
+*⬅️ [上一章 02-数据模型](02-data-model.md) ｜ 🏠 [Wiki 首页](README.md) ｜ ➡️ 下一章 [04-API 参考](04-api-reference.md)*
